@@ -1,0 +1,18 @@
+[package]
+name = "kp-keys"
+description = "L2: physical key table (W3C code, USB HID, Windows VK, PS/2 Set 1) and built-in layouts."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.layer]
+level = 2
+
+[dependencies]
+kp-doc.workspace = true
+kp-geom.workspace = true
+
+[lints]
+workspace = true
