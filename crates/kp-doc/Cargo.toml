@@ -1,0 +1,18 @@
+[package]
+name = "kp-doc"
+description = "L1: the test session document (layout, test state) as plain serde data."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.layer]
+level = 1
+
+[dependencies]
+kp-geom.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true
