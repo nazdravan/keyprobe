@@ -1,0 +1,16 @@
+[package]
+name = "kp-geom"
+description = "L0: geometry, colour and key units."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.layer]
+level = 0
+
+[dependencies]
+
+[lints]
+workspace = true
