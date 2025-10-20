@@ -1,0 +1,17 @@
+[package]
+name = "kp-ui"
+description = "L6: egui panels that draw the session and turn input into commands."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.layer]
+level = 6
+
+[dependencies]
+kp-engine.workspace = true
+
+[lints]
+workspace = true
