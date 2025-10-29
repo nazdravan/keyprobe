@@ -12,9 +12,12 @@ level = 5
 
 [dependencies]
 kp-doc.workspace = true
-kp-keys.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
 
 [lints]
 workspace = true
