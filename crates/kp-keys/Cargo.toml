@@ -14,5 +14,8 @@ level = 2
 kp-doc.workspace = true
 kp-geom.workspace = true
 
+[dev-dependencies]
+proptest.workspace = true
+
 [lints]
 workspace = true
