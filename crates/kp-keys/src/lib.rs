@@ -230,3 +230,155 @@ pub fn by_hid(usage: u16) -> Option<&'static KeyInfo> {
 pub fn hex_dec(value: u8) -> String {
     format!("0x{value:02X} ({value})")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+    use std::collections::BTreeSet;
+
+    /// Values visible in the reference app's public screenshots.
+    #[test]
+    fn matches_reference_screenshots() {
+        let space = by_code("Space").unwrap();
+        assert_eq!((space.vk, space.vk_name), (0x20, "VK_SPACE"));
+        assert_eq!(hex_dec(space.vk), "0x20 (32)");
+        assert_eq!(hex_dec(space.scan), "0x39 (57)");
+        assert!(!space.extended);
+
+        let enter = by_code("Enter").unwrap();
+        assert_eq!(
+            (enter.vk, enter.vk_name, enter.scan),
+            (0x0D, "VK_RETURN", 0x1C)
+        );
+        assert_eq!(hex_dec(enter.scan), "0x1C (28)");
+
+        let prt = by_code("PrintScreen").unwrap();
+        assert_eq!((prt.vk, prt.vk_name, prt.scan), (0x2C, "VK_SNAPSHOT", 0x37));
+        assert_eq!(hex_dec(prt.vk), "0x2C (44)");
+        assert!(prt.extended);
+    }
+
+    #[test]
+    fn full_size_ansi_keys_are_all_present() {
+        let mut want: Vec<String> = Vec::new();
+        want.extend(('A'..='Z').map(|c| format!("Key{c}")));
+        want.extend(('0'..='9').map(|c| format!("Digit{c}")));
+        want.extend(('0'..='9').map(|c| format!("Numpad{c}")));
+        want.extend((1..=12).map(|n| format!("F{n}")));
+        for c in [
+            "Escape",
+            "Backquote",
+            "Minus",
+            "Equal",
+            "Backspace",
+            "Tab",
+            "BracketLeft",
+            "BracketRight",
+            "Backslash",
+            "CapsLock",
+            "Semicolon",
+            "Quote",
+            "Enter",
+            "ShiftLeft",
+            "Comma",
+            "Period",
+            "Slash",
+            "ShiftRight",
+            "ControlLeft",
+            "MetaLeft",
+            "AltLeft",
+            "Space",
+            "AltRight",
+            "MetaRight",
+            "ContextMenu",
+            "ControlRight",
+            "PrintScreen",
+            "ScrollLock",
+            "Pause",
+            "Insert",
+            "Home",
+            "PageUp",
+            "Delete",
+            "End",
+            "PageDown",
+            "ArrowUp",
+            "ArrowLeft",
+            "ArrowDown",
+            "ArrowRight",
+            "NumLock",
+            "NumpadDivide",
+            "NumpadMultiply",
+            "NumpadSubtract",
+            "NumpadAdd",
+            "NumpadEnter",
+            "NumpadDecimal",
+        ] {
+            want.push(c.to_owned());
+        }
+        assert_eq!(want.len(), 104);
+        for code in &want {
+            assert!(by_code(code).is_some(), "missing {code}");
+        }
+    }
+
+    #[test]
+    fn columns_are_unique_where_they_must_be() {
+        let codes: BTreeSet<_> = KEYS.iter().map(|k| k.code).collect();
+        let hids: BTreeSet<_> = KEYS.iter().map(|k| k.hid).collect();
+        let scans: BTreeSet<_> = KEYS.iter().map(|k| (k.scan, k.extended)).collect();
+        assert_eq!(codes.len(), KEYS.len(), "duplicate code");
+        assert_eq!(hids.len(), KEYS.len(), "duplicate HID usage");
+        assert_eq!(scans.len(), KEYS.len(), "duplicate scan code");
+        for k in KEYS {
+            assert!(
+                KeyCode::new(k.code).is_ok(),
+                "{} is not a valid KeyCode",
+                k.code
+            );
+            assert!(k.vk_name.starts_with("VK_"), "{}", k.code);
+            assert!(
+                k.scan < 0x80,
+                "{}: scan codes are make codes (< 0x80)",
+                k.code
+            );
+        }
+    }
+
+    #[test]
+    fn known_tricky_rows() {
+        // Same scan code, told apart by the extended flag.
+        assert_eq!(by_scan(0x45, false).unwrap().code, "Pause");
+        assert_eq!(by_scan(0x45, true).unwrap().code, "NumLock");
+        assert_eq!(by_scan(0x1C, true).unwrap().code, "NumpadEnter");
+        assert_eq!(by_scan(0x47, false).unwrap().code, "Numpad7");
+        assert_eq!(by_scan(0x47, true).unwrap().code, "Home");
+        // Right Shift is not an extended key; right Ctrl/Alt are.
+        assert!(!by_code("ShiftRight").unwrap().extended);
+        assert!(by_code("ControlRight").unwrap().extended);
+        assert!(by_code("AltRight").unwrap().extended);
+        // Aliases.
+        assert_eq!(by_code("SuperLeft").unwrap().code, "MetaLeft");
+        assert_eq!(by_code("OSRight").unwrap().code, "MetaRight");
+        assert_eq!(by_hid(0x2C).unwrap().code, "Space");
+    }
+
+    proptest! {
+        #[test]
+        fn lookups_never_panic(code in ".{0,40}", scan in any::<u8>(), ext in any::<bool>(), hid in any::<u16>()) {
+            let _ = by_code(&code);
+            let _ = canonical(&code);
+            let _ = by_scan(scan, ext);
+            let _ = by_hid(hid);
+            let _ = hex_dec(scan);
+        }
+
+        #[test]
+        fn scan_and_hid_round_trip(i in 0..KEYS.len()) {
+            let key = &KEYS[i];
+            prop_assert_eq!(by_scan(key.scan, key.extended), Some(key));
+            prop_assert_eq!(by_hid(key.hid), Some(key));
+            prop_assert_eq!(by_code(key.code), Some(key));
+        }
+    }
+}
