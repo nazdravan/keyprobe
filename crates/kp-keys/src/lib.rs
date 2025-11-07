@@ -188,3 +188,45 @@ pub static KEYS: &[KeyInfo] = &[
     k("AltRight", 0xE6, 0x12, "VK_MENU", 0x38, E),
     k("MetaRight", 0xE7, 0x5C, "VK_RWIN", 0x5C, E),
 ];
+
+/// Other names platforms use for the same physical key, mapped to the W3C name.
+/// winit names the Windows/Command keys `Super*`; older Firefox sent `OS*`.
+static ALIASES: &[(&str, &str)] = &[
+    ("SuperLeft", "MetaLeft"),
+    ("SuperRight", "MetaRight"),
+    ("OSLeft", "MetaLeft"),
+    ("OSRight", "MetaRight"),
+];
+
+/// The W3C name for `code`, resolving known aliases. Unknown codes come back unchanged.
+pub fn canonical(code: &str) -> &str {
+    ALIASES
+        .iter()
+        .find(|(alias, _)| *alias == code)
+        .map_or(code, |(_, w3c)| w3c)
+}
+
+/// Looks a key up by its W3C `code` (or a known alias).
+pub fn by_code(code: &str) -> Option<&'static KeyInfo> {
+    let code = canonical(code);
+    KEYS.iter().find(|k| k.code == code)
+}
+
+pub fn info(code: &KeyCode) -> Option<&'static KeyInfo> {
+    by_code(code.as_str())
+}
+
+/// Looks a key up by its Windows scan code and extended flag (unique per key).
+pub fn by_scan(scan: u8, extended: bool) -> Option<&'static KeyInfo> {
+    KEYS.iter()
+        .find(|k| k.scan == scan && k.extended == extended)
+}
+
+pub fn by_hid(usage: u16) -> Option<&'static KeyInfo> {
+    KEYS.iter().find(|k| k.hid == usage)
+}
+
+/// `0x20 (32)`, the readout format of the reference app's status bar.
+pub fn hex_dec(value: u8) -> String {
+    format!("0x{value:02X} ({value})")
+}
