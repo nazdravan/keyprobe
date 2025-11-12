@@ -11,6 +11,10 @@ publish = false
 level = 0
 
 [dependencies]
+serde.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
 
 [lints]
 workspace = true
