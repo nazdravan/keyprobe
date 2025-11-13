@@ -21,7 +21,11 @@
 //!   without the flag; Num Lock (`45`) arrives as `0x45` *with* it, as the docs list Num Lock among
 //!   the extended keys.
 
+mod layouts;
+
 use kp_doc::KeyCode;
+
+pub use layouts::{LAYOUT_NAMES, layout};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KeyInfo {
