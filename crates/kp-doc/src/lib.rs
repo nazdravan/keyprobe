@@ -3,10 +3,14 @@
 //! Everything here is untrusted-input safe: key codes are validated on construction and every
 //! collection has a hard cap, so a flood of synthetic events can't grow memory without bound.
 
+mod layout;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+
+pub use layout::{KeyCap, Layout, LayoutError, MAX_EXTENT, MAX_LABEL_LEN};
 
 /// Longest accepted W3C `code` name (the longest real one, `NumpadParenRight`, has 16 chars).
 pub const MAX_CODE_LEN: usize = 32;
