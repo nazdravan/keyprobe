@@ -102,6 +102,7 @@ name = "kp-engine"
 version = "0.1.0"
 dependencies = [
  "kp-doc",
+ "kp-keys",
  "proptest",
  "serde",
  "serde_json",
@@ -111,6 +112,10 @@ dependencies = [
 [[package]]
 name = "kp-geom"
 version = "0.1.0"
+dependencies = [
+ "proptest",
+ "serde",
+]
 
 [[package]]
 name = "kp-keys"
