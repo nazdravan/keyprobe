@@ -4,14 +4,13 @@
 //! The `shortcut` field stays in the spec so a future non-keyboard trigger has one place to live.
 
 use kp_doc::{KeyCode, KeyEvent, NativeCode};
+use kp_keys::LAYOUT_NAMES;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
 use crate::{CommandSpec, EngineError, Registry, Session};
 
-/// Layouts the engine accepts for `view.layout` (grows with G4/G11).
-pub const LAYOUTS: &[&str] = &["ansi-104"];
 /// Themes the engine accepts for `view.theme` (grows with G9).
 pub const THEMES: &[&str] = &["light", "dark"];
 
@@ -60,10 +59,10 @@ pub fn builtin() -> Registry {
             label: "Layout",
             menu: Some("View/Layout"),
             shortcut: None,
-            params: "{name: one of LAYOUTS}",
+            params: "{name: one of kp_keys::LAYOUT_NAMES}",
             enabled: always,
             run: |s, p| {
-                let name = choice("view.layout", p, LAYOUTS)?;
+                let name = choice("view.layout", p, LAYOUT_NAMES)?;
                 s.set_view(|v| v.layout = name);
                 Ok(Value::Null)
             },

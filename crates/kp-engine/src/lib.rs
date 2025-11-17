@@ -11,7 +11,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use kp_doc::DocError;
 use serde_json::Value;
 
-pub use commands::{LAYOUTS, THEMES, builtin};
+pub use commands::{THEMES, builtin};
 pub use session::{History, MAX_HISTORY, Session};
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -181,6 +181,17 @@ mod tests {
             r.register(spec),
             Err(EngineError::Duplicate { .. })
         ));
+    }
+
+    #[test]
+    fn default_and_selectable_layouts_exist() {
+        let app = App::default();
+        assert!(kp_keys::layout(&app.session().doc().view.layout).is_some());
+        let mut app = app;
+        for name in kp_keys::LAYOUT_NAMES {
+            app.run("view.layout", &json!({ "name": name })).unwrap();
+            assert_eq!(&app.session().doc().view.layout, name);
+        }
     }
 
     #[test]
