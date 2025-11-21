@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "xtask"]
+members = ["crates/*", "apps/*", "xtask"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,6 +13,10 @@ kp-geom = { path = "crates/kp-geom" }
 kp-doc = { path = "crates/kp-doc" }
 kp-keys = { path = "crates/kp-keys" }
 kp-engine = { path = "crates/kp-engine" }
+kp-ui = { path = "crates/kp-ui" }
+egui = "0.37"
+eframe = "0.37"
+winit = "0.30"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
