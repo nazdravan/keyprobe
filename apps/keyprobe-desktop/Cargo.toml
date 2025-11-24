@@ -1,0 +1,24 @@
+[package]
+name = "keyprobe"
+description = "L7: KeyProbe desktop app (eframe on our own winit loop, raw key capture)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.layer]
+level = 7
+wasm = false
+
+[dependencies]
+kp-doc.workspace = true
+kp-engine.workspace = true
+kp-keys.workspace = true
+kp-ui.workspace = true
+eframe.workspace = true
+winit.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
