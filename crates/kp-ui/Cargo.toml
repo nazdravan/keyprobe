@@ -11,7 +11,11 @@ publish = false
 level = 6
 
 [dependencies]
+kp-doc.workspace = true
 kp-engine.workspace = true
+kp-keys.workspace = true
+egui.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true
