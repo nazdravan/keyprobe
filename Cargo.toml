@@ -14,6 +14,8 @@ kp-doc = { path = "crates/kp-doc" }
 kp-keys = { path = "crates/kp-keys" }
 kp-engine = { path = "crates/kp-engine" }
 kp-ui = { path = "crates/kp-ui" }
+kp-control = { path = "crates/kp-control" }
+png = "0.18"
 egui = "0.37"
 eframe = "0.37"
 winit = "0.30"
