@@ -1,0 +1,23 @@
+[package]
+name = "kp-control"
+description = "L6: control channel: newline-delimited JSON over localhost TCP, mapped onto engine commands."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.layer]
+level = 6
+wasm = false
+
+[dependencies]
+kp-engine.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true
