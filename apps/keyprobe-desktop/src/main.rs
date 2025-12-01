@@ -2,6 +2,7 @@
 //! `KeyboardInput` (physical key + platform scancode) before egui turns it into a lossy `Key`.
 
 mod capture;
+mod control;
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -14,6 +15,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::WindowId;
 
 use capture::RawKey;
+use control::Control;
 
 /// Captured keys not yet turned into commands; bounded so a stalled UI can't grow it forever.
 const MAX_QUEUED_KEYS: usize = 1024;
@@ -21,6 +23,13 @@ const MAX_QUEUED_KEYS: usize = 1024;
 type KeyQueue = Arc<Mutex<VecDeque<RawKey>>>;
 
 fn main() -> eframe::Result {
+    let control_port = match control::port_from_args(std::env::args()) {
+        Ok(port) => port,
+        Err(e) => {
+            eprintln!("keyprobe: {e}");
+            std::process::exit(2);
+        }
+    };
     let event_loop = EventLoop::<UserEvent>::with_user_event().build()?;
     let queue = KeyQueue::default();
     let app_queue = Arc::clone(&queue);
@@ -33,7 +42,10 @@ fn main() -> eframe::Result {
     let inner = eframe::create_native(
         "KeyProbe",
         options,
-        Box::new(move |_cc| Ok(Box::new(DesktopApp::new(app_queue)))),
+        Box::new(move |cc| {
+            let control = control_port.and_then(|port| Control::start(port, &cc.egui_ctx));
+            Ok(Box::new(DesktopApp::new(app_queue, control)))
+        }),
         &event_loop,
     );
     let mut tap = KeyTap { inner, queue };
@@ -101,14 +113,16 @@ struct DesktopApp {
     app: kp_engine::App,
     ui: KeyProbeUi,
     queue: KeyQueue,
+    control: Option<Control>,
 }
 
 impl DesktopApp {
-    fn new(queue: KeyQueue) -> Self {
+    fn new(queue: KeyQueue, control: Option<Control>) -> Self {
         Self {
             app: kp_engine::App::default(),
             ui: KeyProbeUi::default(),
             queue,
+            control,
         }
     }
 
@@ -143,6 +157,9 @@ impl eframe::App for DesktopApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.drain_keys();
+        if let Some(control) = &self.control {
+            control.drain(&mut self.app, ui.ctx());
+        }
         egui::CentralPanel::default().show(ui, |ui| self.ui.show(ui, &mut self.app));
     }
 }
