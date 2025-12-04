@@ -2,10 +2,17 @@
 //!
 //! Panels never touch the document: every action is `app.run(id, params)` (Rule 1).
 
+mod keyboard;
+
 use egui::{Button, RichText};
 use kp_doc::KeyEvent;
 use kp_engine::App;
-use serde_json::Value;
+use serde_json::{Value, json};
+
+pub use keyboard::{KeyState, Palette, key_state, unit_for};
+
+/// Height kept free under the keyboard for the readout.
+const READOUT_HEIGHT: f32 = 110.0;
 
 /// Per-window UI state that is not part of the document.
 #[derive(Debug, Default)]
@@ -17,8 +24,18 @@ pub struct KeyProbeUi {
 impl KeyProbeUi {
     /// Draws the whole window.
     pub fn show(&mut self, ui: &mut egui::Ui, app: &mut App) {
-        ui.heading("KeyProbe");
         self.toolbar(ui, app);
+        ui.separator();
+        let doc = app.session().doc();
+        match kp_keys::layout(&doc.view.layout) {
+            Some(layout) => {
+                let max_height = (ui.available_height() - READOUT_HEIGHT).max(0.0);
+                keyboard::show(ui, &layout, doc, max_height);
+            }
+            None => {
+                ui.label(format!("Unknown layout {:?}", doc.view.layout));
+            }
+        }
         ui.separator();
         readout(ui, app);
         if let Some(err) = &self.last_error {
@@ -41,7 +58,22 @@ impl KeyProbeUi {
                 let tested = l.keys.iter().filter(|k| doc.test.tested(&k.code)).count();
                 (tested, l.keys.len())
             });
-            ui.label(format!("Tested: {tested} / {total}"));
+            ui.label(RichText::new(format!("Tested: {tested} / {total}")).strong());
+            let current = doc.view.layout.clone();
+            let title = |name: &str| kp_keys::layout(name).map_or(name.to_owned(), |l| l.title);
+            let mut chosen = None;
+            egui::ComboBox::from_id_salt("layout")
+                .selected_text(title(&current))
+                .show_ui(ui, |ui| {
+                    for name in kp_keys::LAYOUT_NAMES {
+                        if ui.selectable_label(current == *name, title(name)).clicked() {
+                            chosen = Some(*name);
+                        }
+                    }
+                });
+            if let Some(name) = chosen {
+                self.run(app, "view.layout", &json!({ "name": name }));
+            }
             for (id, label) in [
                 ("test.reset", "Reset"),
                 ("edit.undo", "Undo"),
@@ -67,13 +99,20 @@ fn readout(ui: &mut egui::Ui, app: &App) {
         ui.label("Press any key.");
         return;
     };
-    egui::Grid::new("readout").num_columns(2).show(ui, |ui| {
-        for (name, value) in readout_rows(event) {
-            ui.label(name);
-            ui.label(RichText::new(value).monospace());
-            ui.end_row();
-        }
-    });
+    // Two label/value pairs per row keeps the readout short under the keyboard.
+    let rows = readout_rows(event);
+    egui::Grid::new("readout")
+        .num_columns(4)
+        .spacing([16.0, 4.0])
+        .show(ui, |ui| {
+            for pair in rows.chunks(2) {
+                for (name, value) in pair {
+                    ui.label(*name);
+                    ui.label(RichText::new(value).monospace());
+                }
+                ui.end_row();
+            }
+        });
 }
 
 /// `(label, value)` rows for a key event; pure, so it is unit-tested without a UI.
@@ -150,13 +189,39 @@ mod tests {
         let mut ui_state = KeyProbeUi::default();
         app.run("key.down", &serde_json::json!({"code": "KeyA"}))
             .unwrap();
+        app.run("key.down", &serde_json::json!({"code": "KeyB"}))
+            .unwrap();
+        app.run("key.up", &serde_json::json!({"code": "KeyB"}))
+            .unwrap();
         let ctx = egui::Context::default();
-        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+        let input = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(1000.0, 500.0),
+            )),
+            ..Default::default()
+        };
+        let mut out = ctx.run_ui(input, |ui| {
             ui_state.show(ui, &mut app);
         });
         // A headless run has no renderer to apply texture updates; drop them explicitly.
         out.textures_delta.clear();
-        assert!(!out.shapes.is_empty());
         assert!(ui_state.last_error.is_none());
+
+        fn fills(shape: &egui::Shape, out: &mut Vec<egui::Color32>) {
+            match shape {
+                egui::Shape::Rect(r) => out.push(r.fill),
+                egui::Shape::Vec(v) => v.iter().for_each(|s| fills(s, out)),
+                _ => {}
+            }
+        }
+        let mut all = Vec::new();
+        for clipped in &out.shapes {
+            fills(&clipped.shape, &mut all);
+        }
+        let palette = Palette::for_visuals(&ctx.global_style().visuals);
+        let count = |c| all.iter().filter(|f| **f == c).count();
+        assert_eq!(count(palette.fill(KeyState::Held)), 1, "KeyA held");
+        assert_eq!(count(palette.fill(KeyState::Tested(1))), 1, "KeyB tested");
     }
 }
