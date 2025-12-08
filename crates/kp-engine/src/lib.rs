@@ -167,6 +167,7 @@ mod tests {
         for id in [
             "key.down",
             "key.up",
+            "key.release_all",
             "test.reset",
             "view.layout",
             "view.theme",
@@ -192,6 +193,16 @@ mod tests {
             app.run("view.layout", &json!({ "name": name })).unwrap();
             assert_eq!(&app.session().doc().view.layout, name);
         }
+    }
+
+    #[test]
+    fn release_all_through_commands() {
+        let mut app = App::default();
+        app.run("key.down", &json!({"code": "KeyA"})).unwrap();
+        assert_eq!(app.run("key.release_all", &Value::Null), Ok(json!(1)));
+        assert!(app.session().doc().test.held.is_empty());
+        assert!(tested(&app, "KeyA"));
+        assert!(!app.session().history().can_undo());
     }
 
     #[test]
@@ -297,7 +308,7 @@ mod tests {
     proptest! {
         /// Untrusted params to any command: never a panic; failures leave the session untouched.
         #[test]
-        fn any_params_any_command(steps in proptest::collection::vec((0usize..8, arb_json()), 0..60)) {
+        fn any_params_any_command(steps in proptest::collection::vec((0usize..64, arb_json()), 0..60)) {
             let mut app = App::default();
             let ids: Vec<&str> = app.registry().specs().map(|s| s.id).chain(["bogus"]).collect();
             for (i, params) in steps {

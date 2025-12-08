@@ -65,6 +65,11 @@ impl Session {
         self.doc.test.apply(event)
     }
 
+    /// Input too: drops held keys whose key-up will never arrive. Not undoable.
+    pub fn release_all(&mut self) -> usize {
+        self.doc.test.release_all()
+    }
+
     /// Clears tested keys and the last event; keys held right now stay held.
     /// Returns false (and records nothing) when there was nothing to clear.
     pub fn reset(&mut self) -> bool {

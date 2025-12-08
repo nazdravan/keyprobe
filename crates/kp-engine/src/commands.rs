@@ -36,6 +36,18 @@ pub fn builtin() -> Registry {
             run: key_up,
         },
         CommandSpec {
+            id: "key.release_all",
+            label: "Release all keys",
+            menu: None,
+            shortcut: None,
+            params: "{}",
+            enabled: always,
+            run: |s, p| {
+                no_params("key.release_all", p)?;
+                Ok(json!(s.release_all()))
+            },
+        },
+        CommandSpec {
             id: "test.reset",
             label: "Reset",
             menu: Some("Test/Reset"),
