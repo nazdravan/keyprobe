@@ -125,6 +125,14 @@ impl TestState {
         Ok(())
     }
 
+    /// Forgets every held key (their key-ups will never arrive, e.g. after the window lost focus).
+    /// Press counts are kept. Returns how many keys were released.
+    pub fn release_all(&mut self) -> usize {
+        let n = self.held.len();
+        self.held.clear();
+        n
+    }
+
     pub fn tested(&self, code: &KeyCode) -> bool {
         self.presses.contains_key(code)
     }
@@ -192,6 +200,20 @@ mod tests {
         assert_eq!(t.presses.get(&a), Some(&2));
         assert!(t.held.contains(&a));
         assert!(t.last.as_ref().is_some_and(|e| !e.repeat));
+    }
+
+    #[test]
+    fn release_all_keeps_counts() {
+        let mut t = TestState::default();
+        t.apply(ev("KeyA", true)).unwrap();
+        t.apply(ev("ShiftLeft", true)).unwrap();
+        assert_eq!(t.release_all(), 2);
+        assert!(t.held.is_empty());
+        assert_eq!(t.presses.len(), 2);
+        assert_eq!(t.release_all(), 0);
+        // After the release a fresh down counts as a new press, not a repeat.
+        t.apply(ev("KeyA", true)).unwrap();
+        assert_eq!(t.presses.get(&KeyCode::new("KeyA").unwrap()), Some(&2));
     }
 
     #[test]
