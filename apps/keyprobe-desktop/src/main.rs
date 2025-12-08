@@ -14,13 +14,13 @@ use winit::event::{DeviceEvent, DeviceId, ElementState, StartCause, WindowEvent}
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::WindowId;
 
-use capture::RawKey;
+use capture::Captured;
 use control::Control;
 
-/// Captured keys not yet turned into commands; bounded so a stalled UI can't grow it forever.
+/// Captured input not yet turned into commands; bounded so a stalled UI can't grow it forever.
 const MAX_QUEUED_KEYS: usize = 1024;
 
-type KeyQueue = Arc<Mutex<VecDeque<RawKey>>>;
+type KeyQueue = Arc<Mutex<VecDeque<Captured>>>;
 
 fn main() -> eframe::Result {
     let control_port = match control::port_from_args(std::env::args()) {
@@ -62,17 +62,21 @@ struct KeyTap<'a> {
 
 impl ApplicationHandler<UserEvent> for KeyTap<'_> {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
-        if let WindowEvent::KeyboardInput { event: key, .. } = &event {
-            let down = key.state == ElementState::Pressed;
-            if let Some(raw) =
+        let captured = match &event {
+            WindowEvent::KeyboardInput { event: key, .. } => {
+                let down = key.state == ElementState::Pressed;
                 capture::raw_key(key.physical_key, &key.logical_key, down, key.repeat)
-            {
-                let mut q = self.queue.lock().unwrap_or_else(|e| e.into_inner());
-                if q.len() >= MAX_QUEUED_KEYS {
-                    q.pop_front();
-                }
-                q.push_back(raw);
+                    .map(Captured::Key)
             }
+            WindowEvent::Focused(false) => Some(Captured::ReleaseAll),
+            _ => None,
+        };
+        if let Some(captured) = captured {
+            let mut q = self.queue.lock().unwrap_or_else(|e| e.into_inner());
+            if q.len() >= MAX_QUEUED_KEYS {
+                q.pop_front();
+            }
+            q.push_back(captured);
         }
         self.inner.window_event(event_loop, id, event);
     }
@@ -127,13 +131,13 @@ impl DesktopApp {
         }
     }
 
-    fn drain_keys(&mut self) {
-        let keys: Vec<RawKey> = {
+    fn drain_input(&mut self) {
+        let input: Vec<Captured> = {
             let mut q = self.queue.lock().unwrap_or_else(|e| e.into_inner());
             q.drain(..).collect()
         };
-        for raw in keys {
-            let (id, params) = raw.command();
+        for captured in input {
+            let (id, params) = captured.command();
             self.ui.run(&mut self.app, id, &params);
         }
     }
@@ -157,7 +161,7 @@ impl eframe::App for DesktopApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        self.drain_keys();
+        self.drain_input();
         if let Some(control) = &self.control {
             control.drain(&mut self.app, ui.ctx());
         }

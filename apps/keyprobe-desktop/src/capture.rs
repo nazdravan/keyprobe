@@ -7,6 +7,23 @@ use serde_json::{Value, json};
 use winit::keyboard::{Key, PhysicalKey};
 use winit::platform::scancode::PhysicalKeyExtScancode;
 
+/// Something the window saw that becomes a command on the UI thread.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Captured {
+    Key(RawKey),
+    /// The window lost focus: key-ups for held keys will go elsewhere, so drop them.
+    ReleaseAll,
+}
+
+impl Captured {
+    pub fn command(&self) -> (&'static str, Value) {
+        match self {
+            Captured::Key(raw) => raw.command(),
+            Captured::ReleaseAll => ("key.release_all", Value::Null),
+        }
+    }
+}
+
 /// One captured key event, ready to become a command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RawKey {
@@ -249,6 +266,24 @@ mod tests {
         let (id, params) = up.command();
         assert_eq!(id, "key.up");
         assert!(params.get("repeat").is_none());
+    }
+
+    #[test]
+    fn focus_loss_releases_held_keys() {
+        let mut app = kp_engine::App::default();
+        let down = raw_key(
+            PhysicalKey::Code(K::KeyA),
+            &Key::Character("a".into()),
+            true,
+            false,
+        )
+        .unwrap();
+        for c in [Captured::Key(down), Captured::ReleaseAll] {
+            let (id, params) = c.command();
+            app.run(id, &params).unwrap();
+        }
+        assert!(app.session().doc().test.held.is_empty());
+        assert_eq!(app.session().doc().test.presses.len(), 1);
     }
 
     #[test]
