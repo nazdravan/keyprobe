@@ -18,7 +18,7 @@ kp-keys.workspace = true
 kp-ui.workspace = true
 kp-control.workspace = true
 png.workspace = true
-eframe.workspace = true
+eframe = { workspace = true, features = ["default"] }
 winit.workspace = true
 serde_json.workspace = true
 
