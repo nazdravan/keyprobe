@@ -1,0 +1,41 @@
+[package]
+name = "keyprobe-web"
+description = "L7: KeyProbe in the browser (eframe WebRunner + window keydown/keyup listeners)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.layer]
+level = 7
+wasm = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+kp-engine.workspace = true
+kp-keys.workspace = true
+kp-ui.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+eframe = { workspace = true, features = ["glow", "default_fonts"] }
+# Must match the installed wasm-bindgen CLI exactly (cargo xtask web).
+wasm-bindgen = "=0.2.130"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "AddEventListenerOptions",
+    "Document",
+    "Element",
+    "Event",
+    "EventTarget",
+    "HtmlCanvasElement",
+    "KeyboardEvent",
+    "Window",
+    "console",
+] }
+
+[lints]
+workspace = true
