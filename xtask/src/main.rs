@@ -3,8 +3,11 @@
 //! - `ci`     — the gate before every commit: fmt, clippy, test, layers, wasm.
 //! - `layers` — every crate declares `[package.metadata.layer] level`; a crate may only depend on
 //!   lower layers, and nothing below L6 may (even transitively) pull in a UI/windowing crate.
-//! - `wasm`   — `cargo check` for wasm32 of every crate that must run on the web
-//!   (level <= 6, unless the crate sets `[package.metadata.layer] wasm = false`).
+//! - `wasm`   — `cargo clippy -D warnings` for wasm32 of every crate that must run on the web
+//!   (level <= 6 unless the crate sets `[package.metadata.layer] wasm = false`, plus any crate
+//!   that sets `wasm = true`), so wasm-only code is linted too.
+//! - `web`    — release build of `keyprobe-web` + `wasm-bindgen` → `dist/` (open via a static
+//!   server, e.g. `python3 -m http.server -d dist`).
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::process::{Command, ExitCode};
@@ -34,8 +37,9 @@ fn main() -> ExitCode {
         "test" => test(),
         "layers" => layers(),
         "wasm" => wasm(),
+        "web" => web(),
         _ => Err(format!(
-            "unknown task {task:?}; expected one of: ci, fmt, clippy, test, layers, wasm"
+            "unknown task {task:?}; expected one of: ci, fmt, clippy, test, layers, wasm, web"
         )),
     };
     match result {
@@ -88,13 +92,54 @@ fn wasm() -> Result {
         .filter(|m| m.wasm.unwrap_or(m.level <= 6))
         .map(|m| m.name)
         .collect();
-    let mut args = vec!["check", "--quiet", "--target", WASM_TARGET];
+    let mut args = vec!["clippy", "--quiet", "--target", WASM_TARGET];
     for name in &crates {
         args.extend(["-p", name.as_str()]);
     }
+    args.extend(["--", "-D", "warnings"]);
     cargo(&args).map_err(|e| {
         format!("{e} (is the {WASM_TARGET} target installed? use rustup's cargo, see CLAUDE.md)")
     })
+}
+
+const WEB_CRATE: &str = "keyprobe-web";
+const DIST: &str = "dist";
+
+fn web() -> Result {
+    cargo(&[
+        "build",
+        "--quiet",
+        "--release",
+        "--target",
+        WASM_TARGET,
+        "-p",
+        WEB_CRATE,
+    ])?;
+    let meta = metadata()?;
+    let target_dir = at(&meta, "/target_directory")
+        .as_str()
+        .ok_or("cargo metadata has no target_directory")?;
+    let root = at(&meta, "/workspace_root")
+        .as_str()
+        .ok_or("cargo metadata has no workspace_root")?;
+    let wasm = format!("{target_dir}/{WASM_TARGET}/release/keyprobe_web.wasm");
+    let dist = format!("{root}/{DIST}");
+    let status = Command::new("wasm-bindgen")
+        .args(["--target", "web", "--no-typescript", "--out-dir", &dist, &wasm])
+        .status()
+        .map_err(|e| {
+            format!("wasm-bindgen: {e} (install: cargo install wasm-bindgen-cli --version <the wasm-bindgen version in Cargo.lock>)")
+        })?;
+    if !status.success() {
+        return Err(format!("wasm-bindgen exited with {status}"));
+    }
+    std::fs::copy(
+        format!("{root}/apps/keyprobe-web/index.html"),
+        format!("{dist}/index.html"),
+    )
+    .map_err(|e| format!("copy index.html: {e}"))?;
+    eprintln!("web: built {dist}/ (serve it: python3 -m http.server -d {DIST})");
+    Ok(())
 }
 
 struct Member {
