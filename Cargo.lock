@@ -804,6 +804,7 @@ dependencies = [
  "egui-winit",
  "egui_glow",
  "egui_system_font_provider",
+ "glow",
  "glutin",
  "glutin-winit",
  "image",
@@ -1696,6 +1697,20 @@ dependencies = [
  "png",
  "serde_json",
  "winit",
+]
+
+[[package]]
+name = "keyprobe-web"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "kp-engine",
+ "kp-keys",
+ "kp-ui",
+ "serde_json",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
