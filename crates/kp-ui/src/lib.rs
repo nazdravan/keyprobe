@@ -3,6 +3,7 @@
 //! Panels never touch the document: every action is `app.run(id, params)` (Rule 1).
 
 mod keyboard;
+mod limits;
 
 use egui::{Button, RichText};
 use kp_doc::KeyEvent;
@@ -10,6 +11,7 @@ use kp_engine::App;
 use serde_json::{Value, json};
 
 pub use keyboard::{KeyState, Palette, key_state, unit_for};
+pub use limits::Platform;
 
 /// Height kept free under the keyboard for the readout.
 const READOUT_HEIGHT: f32 = 110.0;
@@ -89,6 +91,18 @@ impl KeyProbeUi {
                     self.run(app, id, &Value::Null);
                 }
             }
+            ui.separator();
+            let platform = Platform::current();
+            ui.label(RichText::new("Platform limits").underline())
+                .on_hover_ui(|ui| {
+                    ui.strong(format!(
+                        "Not every key reaches KeyProbe on {}:",
+                        platform.name()
+                    ));
+                    for note in platform.notes() {
+                        ui.label(format!("• {note}"));
+                    }
+                });
         });
     }
 }
