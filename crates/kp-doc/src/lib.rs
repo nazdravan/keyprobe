@@ -154,7 +154,7 @@ impl Default for View {
     fn default() -> Self {
         Self {
             layout: "ansi-104".to_owned(),
-            theme: "light".to_owned(),
+            theme: "dark".to_owned(),
         }
     }
 }

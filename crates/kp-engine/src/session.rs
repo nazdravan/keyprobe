@@ -195,12 +195,12 @@ mod tests {
     #[test]
     fn view_undo_redo_and_noop() {
         let mut s = Session::default();
-        assert!(!s.set_view(|v| v.theme = "light".into()));
-        assert!(s.set_view(|v| v.theme = "dark".into()));
+        assert!(!s.set_view(|v| v.theme = "dark".into()));
+        assert!(s.set_view(|v| v.theme = "light".into()));
         assert!(s.undo());
-        assert_eq!(s.doc().view.theme, "light");
-        assert!(s.redo());
         assert_eq!(s.doc().view.theme, "dark");
+        assert!(s.redo());
+        assert_eq!(s.doc().view.theme, "light");
         assert!(!s.redo());
     }
 

@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use crate::{CommandSpec, EngineError, Registry, Session};
 
 /// Themes the engine accepts for `view.theme` (grows with G9).
-pub const THEMES: &[&str] = &["light", "dark"];
+pub const THEMES: &[&str] = &["dark", "light", "high-contrast"];
 
 pub fn builtin() -> Registry {
     let mut r = Registry::default();
