@@ -85,7 +85,7 @@ impl Palette {
 }
 
 /// Draws `layout` with the state from `doc`, filling the available width.
-pub fn show(ui: &mut egui::Ui, layout: &Layout, doc: &Document, max_height: f32) {
+pub fn show(ui: &mut egui::Ui, layout: &Layout, doc: &Document, palette: Palette, max_height: f32) {
     let Some(bounds) = layout.bounds() else {
         ui.label("Empty layout.");
         return;
@@ -94,7 +94,6 @@ pub fn show(ui: &mut egui::Ui, layout: &Layout, doc: &Document, max_height: f32)
     let unit = unit_for(size, Vec2::new(ui.available_width(), max_height));
     let (response, painter) = ui.allocate_painter(size * unit, Sense::hover());
     let origin = response.rect.min;
-    let palette = Palette::for_visuals(ui.visuals());
     let last = doc.test.last.as_ref().map(|e| &e.code);
 
     for key in &layout.keys {
