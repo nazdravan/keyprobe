@@ -4,6 +4,7 @@
 
 mod keyboard;
 mod limits;
+mod theme;
 
 use egui::{Button, RichText};
 use kp_doc::KeyEvent;
@@ -12,6 +13,7 @@ use serde_json::{Value, json};
 
 pub use keyboard::{KeyState, Palette, key_state, unit_for};
 pub use limits::Platform;
+pub use theme::THEMES;
 
 /// Height kept free under the keyboard for the readout.
 const READOUT_HEIGHT: f32 = 110.0;
@@ -21,18 +23,22 @@ const READOUT_HEIGHT: f32 = 110.0;
 pub struct KeyProbeUi {
     /// Last command error, shown until the next successful command.
     last_error: Option<String>,
+    /// Theme id last applied to the egui context.
+    applied_theme: Option<String>,
 }
 
 impl KeyProbeUi {
     /// Draws the whole window.
     pub fn show(&mut self, ui: &mut egui::Ui, app: &mut App) {
+        self.apply_theme(ui.ctx(), &app.session().doc().view.theme);
         self.toolbar(ui, app);
         ui.separator();
         let doc = app.session().doc();
         match kp_keys::layout(&doc.view.layout) {
             Some(layout) => {
                 let max_height = (ui.available_height() - READOUT_HEIGHT).max(0.0);
-                keyboard::show(ui, &layout, doc, max_height);
+                let palette = theme::palette(&doc.view.theme, ui.visuals());
+                keyboard::show(ui, &layout, doc, palette, max_height);
             }
             None => {
                 ui.label(format!("Unknown layout {:?}", doc.view.layout));
@@ -42,6 +48,16 @@ impl KeyProbeUi {
         readout(ui, app);
         if let Some(err) = &self.last_error {
             ui.colored_label(ui.visuals().error_fg_color, err);
+        }
+    }
+
+    /// Switches egui to the document's theme when it changed (undo can change it too).
+    fn apply_theme(&mut self, ctx: &egui::Context, id: &str) {
+        if self.applied_theme.as_deref() != Some(id) {
+            theme::apply(ctx, id);
+            self.applied_theme = Some(id.to_owned());
+            // This frame's panel background is already drawn; paint again with the new one.
+            ctx.request_repaint();
         }
     }
 
@@ -75,6 +91,20 @@ impl KeyProbeUi {
                 });
             if let Some(name) = chosen {
                 self.run(app, "view.layout", &json!({ "name": name }));
+            }
+            let current_theme = app.session().doc().view.theme.clone();
+            let mut chosen_theme = None;
+            egui::ComboBox::from_id_salt("theme")
+                .selected_text(theme::title(&current_theme))
+                .show_ui(ui, |ui| {
+                    for (id, title) in THEMES {
+                        if ui.selectable_label(current_theme == *id, *title).clicked() {
+                            chosen_theme = Some(*id);
+                        }
+                    }
+                });
+            if let Some(name) = chosen_theme {
+                self.run(app, "view.theme", &json!({ "name": name }));
             }
             for (id, label) in [
                 ("test.reset", "Reset"),
@@ -233,7 +263,7 @@ mod tests {
         for clipped in &out.shapes {
             fills(&clipped.shape, &mut all);
         }
-        let palette = Palette::for_visuals(&ctx.global_style().visuals);
+        let palette = theme::palette("dark", &ctx.global_style().visuals);
         let count = |c| all.iter().filter(|f| **f == c).count();
         assert_eq!(count(palette.fill(KeyState::Held)), 1, "KeyA held");
         assert_eq!(count(palette.fill(KeyState::Tested(1))), 1, "KeyB tested");
