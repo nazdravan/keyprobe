@@ -22,7 +22,7 @@ pub fn builtin() -> Registry {
             label: "Key down",
             menu: None,
             shortcut: None,
-            params: "{code: W3C code, repeat?: bool, native?: {scancode?, key_code?, key?}}",
+            params: "{code: W3C code, repeat?: bool, native?: {scancode?, key_code?, key?}, time_ms?: u64}",
             enabled: always,
             run: key_down,
         },
@@ -31,7 +31,7 @@ pub fn builtin() -> Registry {
             label: "Key up",
             menu: None,
             shortcut: None,
-            params: "{code: W3C code, native?: {scancode?, key_code?, key?}}",
+            params: "{code: W3C code, native?: {scancode?, key_code?, key?}, time_ms?: u64}",
             enabled: always,
             run: key_up,
         },
@@ -147,6 +147,8 @@ struct KeyParams {
     repeat: bool,
     #[serde(default)]
     native: NativeCode,
+    #[serde(default)]
+    time_ms: Option<u64>,
 }
 
 fn key_down(s: &mut Session, p: &Value) -> Result<Value, EngineError> {
@@ -162,12 +164,14 @@ fn key(s: &mut Session, id: &str, p: &Value, down: bool) -> Result<Value, Engine
         code,
         repeat,
         native,
+        time_ms,
     } = parse(id, p)?;
     s.key(KeyEvent {
         code,
         down,
         repeat: down && repeat,
         native,
+        time_ms,
     })?;
     Ok(Value::Null)
 }
