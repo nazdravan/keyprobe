@@ -5,7 +5,7 @@
 
 mod layout;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -16,6 +16,8 @@ pub use layout::{KeyCap, Layout, LayoutError, MAX_EXTENT, MAX_LABEL_LEN};
 pub const MAX_CODE_LEN: usize = 32;
 /// Most distinct keys tracked in one session (a full-size board has ~110; media/intl keys add some).
 pub const MAX_KEYS: usize = 256;
+/// Events kept in the event log.
+pub const MAX_LOG: usize = 50;
 /// Longest accepted `KeyboardEvent.key` text.
 pub const MAX_KEY_TEXT_LEN: usize = 32;
 
@@ -88,6 +90,10 @@ pub struct KeyEvent {
     /// Auto-repeat while held.
     pub repeat: bool,
     pub native: NativeCode,
+    /// When it happened, in ms on the platform's monotonic clock (desktop: since app start; web:
+    /// `event.timeStamp`). Only differences between events are meaningful.
+    #[serde(default)]
+    pub time_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -97,6 +103,9 @@ pub struct TestState {
     /// Keys pressed at least once since the last reset, with their press count (repeats excluded).
     pub presses: BTreeMap<KeyCode, u32>,
     pub last: Option<KeyEvent>,
+    /// The last [`MAX_LOG`] events, oldest first, repeats included.
+    #[serde(default)]
+    pub log: VecDeque<KeyEvent>,
 }
 
 impl TestState {
@@ -121,6 +130,10 @@ impl TestState {
         } else {
             self.held.remove(&event.code);
         }
+        if self.log.len() >= MAX_LOG {
+            self.log.pop_front();
+        }
+        self.log.push_back(event.clone());
         self.last = Some(event);
         Ok(())
     }
@@ -177,6 +190,7 @@ mod tests {
             down,
             repeat: false,
             native: NativeCode::default(),
+            time_ms: None,
         }
     }
 
@@ -217,6 +231,16 @@ mod tests {
     }
 
     #[test]
+    fn log_keeps_the_latest_events() {
+        let mut t = TestState::default();
+        for i in 0..(MAX_LOG + 5) {
+            t.apply(ev(&format!("K{}", i % 3), i % 2 == 0)).unwrap();
+        }
+        assert_eq!(t.log.len(), MAX_LOG);
+        assert_eq!(t.log.back(), t.last.as_ref());
+    }
+
+    #[test]
     fn key_cap() {
         let mut t = TestState::default();
         for i in 0..MAX_KEYS {
@@ -239,6 +263,7 @@ mod tests {
                 let _ = t.apply(e);
                 prop_assert!(t.held.len() <= MAX_KEYS && t.presses.len() <= MAX_KEYS);
                 prop_assert!(t.presses.values().all(|n| *n >= 1));
+                prop_assert!(t.log.len() <= MAX_LOG);
                 if let Some(k) = t.last.as_ref().and_then(|e| e.native.key.as_ref()) {
                     prop_assert!(k.chars().count() <= MAX_KEY_TEXT_LEN);
                 }

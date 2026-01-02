@@ -226,6 +226,7 @@ mod tests {
             down,
             repeat: false,
             native: NativeCode::default(),
+            time_ms: None,
         })
         .unwrap();
     }
