@@ -85,7 +85,14 @@ fn listen_keys(
         // Every key is input under test: stop the browser acting on it (Tab focus, Space
         // scroll, F5 reload, Alt menu…) where it lets us; some shortcuts it never hands over.
         e.prevent_default();
-        if let Some(input) = keys::key_input(&e.code(), &e.key(), e.key_code(), down, e.repeat()) {
+        if let Some(input) = keys::key_input(
+            &e.code(),
+            &e.key(),
+            e.key_code(),
+            down,
+            e.repeat(),
+            e.time_stamp(),
+        ) {
             push(&queue, &waker, input);
         }
     });

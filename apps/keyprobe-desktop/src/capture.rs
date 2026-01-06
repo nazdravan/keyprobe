@@ -3,6 +3,9 @@
 //! We read winit's physical key (layout-independent, named after the W3C `code` values) and the
 //! platform scancode, which egui's own `Key` drops.
 
+use std::sync::OnceLock;
+use std::time::Instant;
+
 use serde_json::{Value, json};
 use winit::keyboard::{Key, PhysicalKey};
 use winit::platform::scancode::PhysicalKeyExtScancode;
@@ -32,6 +35,8 @@ pub struct RawKey {
     pub repeat: bool,
     pub scancode: Option<u32>,
     pub key: Option<String>,
+    /// Capture time in ms since the first captured event's clock start (see [`now_ms`]).
+    pub time_ms: Option<u64>,
 }
 
 impl RawKey {
@@ -44,13 +49,17 @@ impl RawKey {
         if let Some(key) = &self.key {
             native.insert("key".into(), json!(key));
         }
+        let mut params = json!({"code": self.code, "native": native});
+        if let (Some(t), Some(obj)) = (self.time_ms, params.as_object_mut()) {
+            obj.insert("time_ms".into(), json!(t));
+        }
         if self.down {
-            (
-                "key.down",
-                json!({"code": self.code, "repeat": self.repeat, "native": native}),
-            )
+            if let Some(obj) = params.as_object_mut() {
+                obj.insert("repeat".into(), json!(self.repeat));
+            }
+            ("key.down", params)
         } else {
-            ("key.up", json!({"code": self.code, "native": native}))
+            ("key.up", params)
         }
     }
 }
@@ -63,7 +72,15 @@ pub fn raw_key(physical: PhysicalKey, logical: &Key, down: bool, repeat: bool) -
         repeat,
         scancode: physical.to_scancode(),
         key: key_text(logical),
+        time_ms: Some(now_ms()),
     })
+}
+
+/// Milliseconds on a monotonic clock that starts at the first call.
+pub fn now_ms() -> u64 {
+    static START: OnceLock<Instant> = OnceLock::new();
+    let elapsed = START.get_or_init(Instant::now).elapsed().as_millis();
+    u64::try_from(elapsed).unwrap_or(u64::MAX)
 }
 
 /// winit `KeyCode` variant names follow the W3C `code` values; the few that differ
