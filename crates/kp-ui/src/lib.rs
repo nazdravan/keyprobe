@@ -45,7 +45,14 @@ impl KeyProbeUi {
             }
         }
         ui.separator();
-        readout(ui, app);
+        ui.horizontal_top(|ui| {
+            ui.vertical(|ui| {
+                ui.set_width((ui.available_width() * 0.62).max(200.0));
+                readout(ui, app);
+            });
+            ui.separator();
+            ui.vertical(|ui| event_log(ui, app));
+        });
         if let Some(err) = &self.last_error {
             ui.colored_label(ui.visuals().error_fg_color, err);
         }
@@ -159,6 +166,42 @@ fn readout(ui: &mut egui::Ui, app: &App) {
         });
 }
 
+/// The event log, newest first, scrolling within the readout height.
+fn event_log(ui: &mut egui::Ui, app: &App) {
+    let lines = log_lines(&app.session().doc().test.log);
+    if lines.is_empty() {
+        ui.weak("Event log");
+        return;
+    }
+    egui::ScrollArea::vertical()
+        .max_height(READOUT_HEIGHT - 10.0)
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            for line in lines {
+                ui.label(RichText::new(line).monospace().small());
+            }
+        });
+}
+
+/// Log lines, newest first: `KeyA ↓ repeat  +12 ms` (time since the previous event, when both
+/// events carry a timestamp).
+pub fn log_lines(log: &std::collections::VecDeque<KeyEvent>) -> Vec<String> {
+    let mut lines = Vec::with_capacity(log.len());
+    let mut previous: Option<u64> = None;
+    for e in log {
+        let arrow = if e.down { "↓" } else { "↑" };
+        let repeat = if e.repeat { " repeat" } else { "" };
+        let delta = match (previous, e.time_ms) {
+            (Some(p), Some(t)) => format!("  +{} ms", t.saturating_sub(p)),
+            _ => String::new(),
+        };
+        lines.push(format!("{} {arrow}{repeat}{delta}", e.code));
+        previous = e.time_ms;
+    }
+    lines.reverse();
+    lines
+}
+
 /// `(label, value)` rows for a key event; pure, so it is unit-tested without a UI.
 pub fn readout_rows(event: &KeyEvent) -> Vec<(&'static str, String)> {
     let state = match (event.down, event.repeat) {
@@ -206,6 +249,7 @@ mod tests {
                 key_code: None,
                 key: Some("PrintScreen".into()),
             },
+            time_ms: None,
         };
         let rows = readout_rows(&e);
         assert_eq!(rows[0], ("Key", "PrintScreen — down".to_owned()));
@@ -215,12 +259,38 @@ mod tests {
     }
 
     #[test]
+    fn log_lines_newest_first_with_deltas() {
+        let mut app = App::default();
+        for (id, code, t) in [
+            ("key.down", "KeyA", 1000),
+            ("key.down", "KeyA", 1500),
+            ("key.up", "KeyA", 1520),
+        ] {
+            app.run(id, &serde_json::json!({"code": code, "time_ms": t}))
+                .unwrap();
+        }
+        app.run("key.down", &serde_json::json!({"code": "KeyB"}))
+            .unwrap();
+        let lines = log_lines(&app.session().doc().test.log);
+        assert_eq!(
+            lines,
+            [
+                "KeyB ↓",
+                "KeyA ↑  +20 ms",
+                "KeyA ↓ repeat  +500 ms",
+                "KeyA ↓"
+            ]
+        );
+    }
+
+    #[test]
     fn unknown_key_is_reported_not_hidden() {
         let e = KeyEvent {
             code: KeyCode::new("MediaPlayPause").unwrap(),
             down: false,
             repeat: false,
             native: NativeCode::default(),
+            time_ms: None,
         };
         let rows = readout_rows(&e);
         assert_eq!(rows[0].1, "MediaPlayPause — up");
