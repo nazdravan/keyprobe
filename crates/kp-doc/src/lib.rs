@@ -16,6 +16,11 @@ pub use layout::{KeyCap, Layout, LayoutError, MAX_EXTENT, MAX_LABEL_LEN};
 pub const MAX_CODE_LEN: usize = 32;
 /// Most distinct keys tracked in one session (a full-size board has ~110; media/intl keys add some).
 pub const MAX_KEYS: usize = 256;
+/// A press closer than this to the same key's previous release counts as chatter: a switch that
+/// bounces registers twice, while even a fast human double tap leaves a longer gap.
+pub const CHATTER_MS: u64 = 30;
+/// A key held longer than this is flagged as possibly stuck.
+pub const STUCK_MS: u64 = 5_000;
 /// Events kept in the event log.
 pub const MAX_LOG: usize = 50;
 /// Longest accepted `KeyboardEvent.key` text.
@@ -106,6 +111,15 @@ pub struct TestState {
     /// The last [`MAX_LOG`] events, oldest first, repeats included.
     #[serde(default)]
     pub log: VecDeque<KeyEvent>,
+    /// Presses that came within [`CHATTER_MS`] of the same key's release, per key.
+    #[serde(default)]
+    pub chatter: BTreeMap<KeyCode, u32>,
+    /// When each held key went down (if the event had a time), for stuck-key detection.
+    #[serde(default)]
+    pub down_at: BTreeMap<KeyCode, u64>,
+    /// When each key was last released (if the event had a time), for chatter detection.
+    #[serde(default)]
+    pub up_at: BTreeMap<KeyCode, u64>,
 }
 
 impl TestState {
@@ -126,9 +140,26 @@ impl TestState {
             if !event.repeat {
                 let n = self.presses.entry(event.code.clone()).or_insert(0);
                 *n = n.saturating_add(1);
+                if let Some(t) = event.time_ms {
+                    let bounced = self
+                        .up_at
+                        .get(&event.code)
+                        .is_some_and(|up| t >= *up && t - up < CHATTER_MS);
+                    if bounced {
+                        let c = self.chatter.entry(event.code.clone()).or_insert(0);
+                        *c = c.saturating_add(1);
+                    }
+                    self.down_at.insert(event.code.clone(), t);
+                }
             }
         } else {
             self.held.remove(&event.code);
+            self.down_at.remove(&event.code);
+            if let Some(t) = event.time_ms
+                && (self.up_at.contains_key(&event.code) || self.up_at.len() < MAX_KEYS)
+            {
+                self.up_at.insert(event.code.clone(), t);
+            }
         }
         if self.log.len() >= MAX_LOG {
             self.log.pop_front();
@@ -143,7 +174,21 @@ impl TestState {
     pub fn release_all(&mut self) -> usize {
         let n = self.held.len();
         self.held.clear();
+        self.down_at.clear();
         n
+    }
+
+    /// How long `code` has been held at `now_ms`, if it is held and its key-down had a time.
+    pub fn held_for(&self, code: &KeyCode, now_ms: u64) -> Option<u64> {
+        if !self.held.contains(code) {
+            return None;
+        }
+        self.down_at.get(code).map(|t| now_ms.saturating_sub(*t))
+    }
+
+    /// True if `code` has been held longer than [`STUCK_MS`].
+    pub fn stuck(&self, code: &KeyCode, now_ms: u64) -> bool {
+        self.held_for(code, now_ms).is_some_and(|d| d > STUCK_MS)
     }
 
     pub fn tested(&self, code: &KeyCode) -> bool {
@@ -240,6 +285,47 @@ mod tests {
         assert_eq!(t.log.back(), t.last.as_ref());
     }
 
+    fn timed(code: &str, down: bool, t: u64) -> KeyEvent {
+        KeyEvent {
+            time_ms: Some(t),
+            ..ev(code, down)
+        }
+    }
+
+    #[test]
+    fn chatter_is_a_press_right_after_a_release() {
+        let a = KeyCode::new("KeyA").unwrap();
+        let mut t = TestState::default();
+        t.apply(timed("KeyA", true, 1000)).unwrap();
+        t.apply(timed("KeyA", false, 1080)).unwrap();
+        t.apply(timed("KeyA", true, 1090)).unwrap(); // 10 ms after release: bounce
+        t.apply(timed("KeyA", false, 1150)).unwrap();
+        t.apply(timed("KeyA", true, 1300)).unwrap(); // 150 ms: a real second press
+        assert_eq!(t.chatter.get(&a), Some(&1));
+        assert_eq!(t.presses.get(&a), Some(&3));
+        // Untimed events never count as chatter.
+        let mut u = TestState::default();
+        for down in [true, false, true] {
+            u.apply(ev("KeyA", down)).unwrap();
+        }
+        assert!(u.chatter.is_empty());
+    }
+
+    #[test]
+    fn stuck_after_a_long_hold() {
+        let a = KeyCode::new("KeyA").unwrap();
+        let mut t = TestState::default();
+        t.apply(timed("KeyA", true, 1000)).unwrap();
+        assert_eq!(t.held_for(&a, 3000), Some(2000));
+        assert!(!t.stuck(&a, 1000 + STUCK_MS));
+        assert!(t.stuck(&a, 1001 + STUCK_MS));
+        t.apply(timed("KeyA", true, 9000)).unwrap(); // repeat keeps the original down time
+        assert_eq!(t.held_for(&a, 9000), Some(8000));
+        t.release_all();
+        assert!(!t.stuck(&a, 99_000));
+        assert!(t.down_at.is_empty());
+    }
+
     #[test]
     fn key_cap() {
         let mut t = TestState::default();
@@ -264,6 +350,8 @@ mod tests {
                 prop_assert!(t.held.len() <= MAX_KEYS && t.presses.len() <= MAX_KEYS);
                 prop_assert!(t.presses.values().all(|n| *n >= 1));
                 prop_assert!(t.log.len() <= MAX_LOG);
+                prop_assert!(t.up_at.len() <= MAX_KEYS && t.down_at.len() <= t.held.len());
+                prop_assert!(t.chatter.keys().all(|k| t.presses.contains_key(k)));
                 if let Some(k) = t.last.as_ref().and_then(|e| e.native.key.as_ref()) {
                     prop_assert!(k.chars().count() <= MAX_KEY_TEXT_LEN);
                 }
