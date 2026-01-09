@@ -17,10 +17,15 @@ pub enum KeyState {
     Tested(u32),
     /// Held down right now.
     Held,
+    /// Held longer than `kp_doc::STUCK_MS`.
+    Stuck,
 }
 
-pub fn key_state(test: &TestState, key: &KeyCap) -> KeyState {
-    if test.held.contains(&key.code) {
+/// The key's state at `now_ms` (stuck detection needs a clock; without one a held key is held).
+pub fn key_state(test: &TestState, key: &KeyCap, now_ms: Option<u64>) -> KeyState {
+    if now_ms.is_some_and(|now| test.stuck(&key.code, now)) {
+        KeyState::Stuck
+    } else if test.held.contains(&key.code) {
         KeyState::Held
     } else {
         test.presses
@@ -50,6 +55,8 @@ pub struct Palette {
     pub untested_text: Color32,
     pub tested_fill: Color32,
     pub held_fill: Color32,
+    /// Stuck keys and chatter warnings.
+    pub alert: Color32,
     pub marked_text: Color32,
     pub border: Color32,
     pub last: Color32,
@@ -62,6 +69,7 @@ impl Palette {
             untested_text: v.text_color(),
             tested_fill: Color32::from_rgb(88, 190, 110),
             held_fill: Color32::from_rgb(245, 178, 50),
+            alert: Color32::from_rgb(230, 70, 60),
             marked_text: Color32::from_rgb(20, 24, 22),
             border: v.widgets.noninteractive.bg_stroke.color,
             last: v.selection.stroke.color,
@@ -73,6 +81,7 @@ impl Palette {
             KeyState::Untested => self.untested_fill,
             KeyState::Tested(_) => self.tested_fill,
             KeyState::Held => self.held_fill,
+            KeyState::Stuck => self.alert,
         }
     }
 
@@ -85,7 +94,14 @@ impl Palette {
 }
 
 /// Draws `layout` with the state from `doc`, filling the available width.
-pub fn show(ui: &mut egui::Ui, layout: &Layout, doc: &Document, palette: Palette, max_height: f32) {
+pub fn show(
+    ui: &mut egui::Ui,
+    layout: &Layout,
+    doc: &Document,
+    palette: Palette,
+    now_ms: Option<u64>,
+    max_height: f32,
+) {
     let Some(bounds) = layout.bounds() else {
         ui.label("Empty layout.");
         return;
@@ -97,7 +113,7 @@ pub fn show(ui: &mut egui::Ui, layout: &Layout, doc: &Document, palette: Palette
     let last = doc.test.last.as_ref().map(|e| &e.code);
 
     for key in &layout.keys {
-        let state = key_state(&doc.test, key);
+        let state = key_state(&doc.test, key, now_ms);
         let rect = key_rect(origin, unit, key);
         let radius = CornerRadius::same((unit * 0.12).clamp(2.0, 8.0) as u8);
         painter.rect_filled(rect, radius, palette.fill(state));
@@ -119,12 +135,25 @@ pub fn show(ui: &mut egui::Ui, layout: &Layout, doc: &Document, palette: Palette
                 palette.marked_text,
             );
         }
+        if doc.test.chatter.contains_key(&key.code) {
+            // A red "!" badge in the top-right corner: this switch registered a bounce.
+            let r = unit * 0.13;
+            let c = rect.right_top() + Vec2::new(-r - unit * 0.05, r + unit * 0.05);
+            painter.circle_filled(c, r, palette.alert);
+            painter.text(
+                c,
+                Align2::CENTER_CENTER,
+                "!",
+                FontId::proportional(r * 1.6),
+                Color32::WHITE,
+            );
+        }
     }
 
     if let Some(pos) = response.hover_pos() {
         let at = (pos - origin) / unit;
         if let Some(key) = layout.key_at(at.x, at.y) {
-            response.on_hover_ui_at_pointer(|ui| tooltip(ui, key, &doc.test));
+            response.on_hover_ui_at_pointer(|ui| tooltip(ui, key, &doc.test, now_ms));
         }
     }
 }
@@ -199,7 +228,7 @@ fn fit(painter: &egui::Painter, text: &str, size: f32, max_width: f32) -> FontId
     }
 }
 
-fn tooltip(ui: &mut egui::Ui, key: &KeyCap, test: &TestState) {
+fn tooltip(ui: &mut egui::Ui, key: &KeyCap, test: &TestState, now_ms: Option<u64>) {
     ui.strong(key.code.as_str());
     if let Some(info) = kp_keys::info(&key.code) {
         ui.label(format!(
@@ -213,6 +242,18 @@ fn tooltip(ui: &mut egui::Ui, key: &KeyCap, test: &TestState) {
     }
     let presses = test.presses.get(&key.code).copied().unwrap_or(0);
     ui.label(format!("Pressed {presses}×"));
+    if let Some(n) = test.chatter.get(&key.code) {
+        ui.colored_label(
+            Color32::from_rgb(230, 70, 60),
+            format!(
+                "Chatter suspected {n}× (pressed again < {} ms after release)",
+                kp_doc::CHATTER_MS
+            ),
+        );
+    }
+    if let Some(d) = now_ms.and_then(|now| test.held_for(&key.code, now)) {
+        ui.label(format!("Held for {:.1} s", d as f64 / 1000.0));
+    }
 }
 
 #[cfg(test)]
@@ -236,13 +277,31 @@ mod tests {
         let layout = kp_keys::layout("ansi-104").unwrap();
         let key = |c: &str| layout.key(&KeyCode::new(c).unwrap()).unwrap();
         let mut t = TestState::default();
-        assert_eq!(key_state(&t, key("KeyA")), KeyState::Untested);
+        assert_eq!(key_state(&t, key("KeyA"), None), KeyState::Untested);
         press(&mut t, "KeyA", true);
-        assert_eq!(key_state(&t, key("KeyA")), KeyState::Held);
+        assert_eq!(key_state(&t, key("KeyA"), None), KeyState::Held);
         press(&mut t, "KeyA", false);
         press(&mut t, "KeyA", true);
         press(&mut t, "KeyA", false);
-        assert_eq!(key_state(&t, key("KeyA")), KeyState::Tested(2));
+        assert_eq!(key_state(&t, key("KeyA"), None), KeyState::Tested(2));
+        test_stuck(&mut t, key("KeyA"));
+    }
+
+    fn test_stuck(t: &mut TestState, a: &KeyCap) {
+        t.apply(KeyEvent {
+            code: a.code.clone(),
+            down: true,
+            repeat: false,
+            native: NativeCode::default(),
+            time_ms: Some(1000),
+        })
+        .unwrap();
+        assert_eq!(key_state(t, a, Some(2000)), KeyState::Held);
+        assert_eq!(
+            key_state(t, a, Some(1001 + kp_doc::STUCK_MS)),
+            KeyState::Stuck
+        );
+        assert_eq!(key_state(t, a, None), KeyState::Held);
     }
 
     #[test]
@@ -272,10 +331,13 @@ mod tests {
                 p.fill(KeyState::Untested),
                 p.fill(KeyState::Tested(1)),
                 p.fill(KeyState::Held),
+                p.fill(KeyState::Stuck),
             ];
-            assert_ne!(fills[0], fills[1]);
-            assert_ne!(fills[1], fills[2]);
-            assert_ne!(fills[0], fills[2]);
+            for (i, a) in fills.iter().enumerate() {
+                for b in fills.iter().skip(i + 1) {
+                    assert_ne!(a, b);
+                }
+            }
         }
     }
 }

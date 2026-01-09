@@ -42,6 +42,7 @@ pub fn palette(id: &str, v: &Visuals) -> Palette {
             untested_text: Color32::WHITE,
             tested_fill: Color32::from_rgb(0, 230, 90),
             held_fill: Color32::from_rgb(255, 220, 0),
+            alert: Color32::from_rgb(255, 60, 60),
             marked_text: Color32::BLACK,
             border: Color32::WHITE,
             last: Color32::from_rgb(0, 200, 255),
@@ -91,10 +92,13 @@ mod tests {
                 p.fill(KeyState::Untested),
                 p.fill(KeyState::Tested(1)),
                 p.fill(KeyState::Held),
+                p.fill(KeyState::Stuck),
             ];
-            assert_ne!(fills[0], fills[1], "{id}");
-            assert_ne!(fills[1], fills[2], "{id}");
-            assert_ne!(fills[0], fills[2], "{id}");
+            for (i, a) in fills.iter().enumerate() {
+                for b in fills.iter().skip(i + 1) {
+                    assert_ne!(a, b, "{id}");
+                }
+            }
         }
     }
 
