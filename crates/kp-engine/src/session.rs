@@ -10,10 +10,11 @@ pub const MAX_HISTORY: usize = 100;
 /// One undoable edit, stored as what is needed to invert it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Edit {
-    /// Press counts that the reset cleared. Undo adds them back on top of whatever was pressed
-    /// since, so undoing a reset never loses newer test progress.
+    /// Press and chatter counts that the reset cleared. Undo adds them back on top of whatever
+    /// was pressed since, so undoing a reset never loses newer test progress.
     Reset {
         presses: BTreeMap<KeyCode, u32>,
+        chatter: BTreeMap<KeyCode, u32>,
     },
     View {
         before: View,
@@ -73,11 +74,11 @@ impl Session {
     /// Clears tested keys and the last event; keys held right now stay held.
     /// Returns false (and records nothing) when there was nothing to clear.
     pub fn reset(&mut self) -> bool {
-        let presses = self.clear_presses();
+        let (presses, chatter) = self.clear_presses();
         if presses.is_empty() {
             return false;
         }
-        self.history.push(Edit::Reset { presses });
+        self.history.push(Edit::Reset { presses, chatter });
         true
     }
 
@@ -98,15 +99,9 @@ impl Session {
             return false;
         };
         match &edit {
-            Edit::Reset { presses } => {
-                let current = &mut self.doc.test.presses;
-                for (code, n) in presses {
-                    if let Some(c) = current.get_mut(code) {
-                        *c = c.saturating_add(*n);
-                    } else if current.len() < MAX_KEYS {
-                        current.insert(code.clone(), *n);
-                    }
-                }
+            Edit::Reset { presses, chatter } => {
+                merge_counts(&mut self.doc.test.presses, presses);
+                merge_counts(&mut self.doc.test.chatter, chatter);
             }
             Edit::View { before, .. } => self.doc.view = before.clone(),
         }
@@ -120,9 +115,10 @@ impl Session {
         };
         let edit = match edit {
             // Redo is a fresh reset: it clears (and remembers) what is pressed now.
-            Edit::Reset { .. } => Edit::Reset {
-                presses: self.clear_presses(),
-            },
+            Edit::Reset { .. } => {
+                let (presses, chatter) = self.clear_presses();
+                Edit::Reset { presses, chatter }
+            }
             Edit::View { before, after } => {
                 self.doc.view = after.clone();
                 Edit::View { before, after }
@@ -135,9 +131,27 @@ impl Session {
         true
     }
 
-    fn clear_presses(&mut self) -> BTreeMap<KeyCode, u32> {
-        self.doc.test.last = None;
-        std::mem::take(&mut self.doc.test.presses)
+    /// Clears the test results (press and chatter counts, last event, release times) and returns
+    /// the counts for undo. Held keys stay held.
+    fn clear_presses(&mut self) -> (BTreeMap<KeyCode, u32>, BTreeMap<KeyCode, u32>) {
+        let test = &mut self.doc.test;
+        test.last = None;
+        test.up_at.clear();
+        (
+            std::mem::take(&mut test.presses),
+            std::mem::take(&mut test.chatter),
+        )
+    }
+}
+
+/// Adds `from` onto `into`, without letting `into` grow past [`MAX_KEYS`] keys.
+fn merge_counts(into: &mut BTreeMap<KeyCode, u32>, from: &BTreeMap<KeyCode, u32>) {
+    for (code, n) in from {
+        if let Some(c) = into.get_mut(code) {
+            *c = c.saturating_add(*n);
+        } else if into.len() < MAX_KEYS {
+            into.insert(code.clone(), *n);
+        }
     }
 }
 
@@ -184,6 +198,28 @@ mod tests {
         assert!(s.doc().test.presses.is_empty());
         assert!(s.undo());
         assert_eq!(count(&s, "KeyA"), Some(2));
+    }
+
+    #[test]
+    fn reset_clears_and_undo_restores_chatter() {
+        let mut s = Session::default();
+        let code = KeyCode::new("KeyA").unwrap();
+        for (down, t) in [(true, 0), (false, 50), (true, 55), (false, 90)] {
+            s.key(KeyEvent {
+                code: code.clone(),
+                down,
+                repeat: false,
+                native: NativeCode::default(),
+                time_ms: Some(t),
+            })
+            .unwrap();
+        }
+        assert_eq!(s.doc().test.chatter.get(&code), Some(&1));
+        assert!(s.reset());
+        assert!(s.doc().test.chatter.is_empty());
+        assert!(s.doc().test.up_at.is_empty());
+        assert!(s.undo());
+        assert_eq!(s.doc().test.chatter.get(&code), Some(&1));
     }
 
     #[test]
