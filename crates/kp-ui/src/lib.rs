@@ -6,7 +6,7 @@ mod keyboard;
 mod limits;
 mod theme;
 
-use egui::{Button, RichText};
+use egui::{Button, Color32, RichText};
 use kp_doc::KeyEvent;
 use kp_engine::App;
 use serde_json::{Value, json};
@@ -25,12 +25,19 @@ pub struct KeyProbeUi {
     last_error: Option<String>,
     /// Theme id last applied to the egui context.
     applied_theme: Option<String>,
+    /// Current time on the same clock as the key events' `time_ms` (set by the app each frame).
+    now_ms: Option<u64>,
 }
 
 impl KeyProbeUi {
     /// Draws the whole window.
     pub fn show(&mut self, ui: &mut egui::Ui, app: &mut App) {
         self.apply_theme(ui.ctx(), &app.session().doc().view.theme);
+        if !app.session().doc().test.held.is_empty() {
+            // Held keys can turn "stuck" without any new event; keep the clock moving.
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(500));
+        }
         self.toolbar(ui, app);
         ui.separator();
         let doc = app.session().doc();
@@ -38,7 +45,7 @@ impl KeyProbeUi {
             Some(layout) => {
                 let max_height = (ui.available_height() - READOUT_HEIGHT).max(0.0);
                 let palette = theme::palette(&doc.view.theme, ui.visuals());
-                keyboard::show(ui, &layout, doc, palette, max_height);
+                keyboard::show(ui, &layout, doc, palette, self.now_ms, max_height);
             }
             None => {
                 ui.label(format!("Unknown layout {:?}", doc.view.layout));
@@ -56,6 +63,12 @@ impl KeyProbeUi {
         if let Some(err) = &self.last_error {
             ui.colored_label(ui.visuals().error_fg_color, err);
         }
+    }
+
+    /// Sets the current time, on the clock the app stamps key events with. Enables stuck-key
+    /// detection; call before [`Self::show`] every frame.
+    pub fn set_clock(&mut self, now_ms: u64) {
+        self.now_ms = Some(now_ms);
     }
 
     /// Switches egui to the document's theme when it changed (undo can change it too).
@@ -84,6 +97,13 @@ impl KeyProbeUi {
                 (tested, l.keys.len())
             });
             ui.label(RichText::new(format!("Tested: {tested} / {total}")).strong());
+            if let Some(summary) = chatter_summary(&doc.test) {
+                ui.colored_label(Color32::from_rgb(230, 70, 60), summary)
+                    .on_hover_text(format!(
+                        "Pressed again less than {} ms after release: the switch may bounce.",
+                        kp_doc::CHATTER_MS
+                    ));
+            }
             let current = doc.view.layout.clone();
             let title = |name: &str| kp_keys::layout(name).map_or(name.to_owned(), |l| l.title);
             let mut chosen = None;
@@ -164,6 +184,19 @@ fn readout(ui: &mut egui::Ui, app: &App) {
                 ui.end_row();
             }
         });
+}
+
+/// `Chatter: KeyA ×2, KeyF ×1`, or `None` when no key chattered.
+pub fn chatter_summary(test: &kp_doc::TestState) -> Option<String> {
+    if test.chatter.is_empty() {
+        return None;
+    }
+    let keys: Vec<String> = test
+        .chatter
+        .iter()
+        .map(|(code, n)| format!("{code} ×{n}"))
+        .collect();
+    Some(format!("Chatter: {}", keys.join(", ")))
 }
 
 /// The event log, newest first, scrolling within the readout height.
@@ -280,6 +313,20 @@ mod tests {
                 "KeyA ↓ repeat  +500 ms",
                 "KeyA ↓"
             ]
+        );
+    }
+
+    #[test]
+    fn chatter_summary_lists_keys() {
+        let mut app = App::default();
+        assert!(chatter_summary(&app.session().doc().test).is_none());
+        for (id, t) in [("key.down", 0), ("key.up", 40), ("key.down", 45)] {
+            app.run(id, &serde_json::json!({"code": "KeyF", "time_ms": t}))
+                .unwrap();
+        }
+        assert_eq!(
+            chatter_summary(&app.session().doc().test).as_deref(),
+            Some("Chatter: KeyF ×1")
         );
     }
 
