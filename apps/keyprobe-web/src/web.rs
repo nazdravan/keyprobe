@@ -141,6 +141,13 @@ impl eframe::App for WebApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // Same clock as `KeyboardEvent.timeStamp`.
+        if let Some(now) = web_sys::window().and_then(|w| w.performance()) {
+            let now = now.now();
+            if now.is_finite() && now >= 0.0 {
+                self.ui.set_clock(now as u64);
+            }
+        }
         let input: Vec<WebInput> = self.queue.borrow_mut().drain(..).collect();
         for i in input {
             let (id, params) = i.command();

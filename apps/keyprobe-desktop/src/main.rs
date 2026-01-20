@@ -165,6 +165,7 @@ impl eframe::App for DesktopApp {
         if let Some(control) = &self.control {
             control.drain(&mut self.app, ui.ctx());
         }
+        self.ui.set_clock(capture::now_ms());
         egui::CentralPanel::default().show(ui, |ui| self.ui.show(ui, &mut self.app));
     }
 }

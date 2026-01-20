@@ -64,7 +64,8 @@ impl Control {
 
     /// Answers every queued request. Call once per frame, before drawing.
     pub fn drain(&self, app: &mut kp_engine::App, ctx: &egui::Context) {
-        while let Ok(pending) = self.rx.try_recv() {
+        while let Ok(mut pending) = self.rx.try_recv() {
+            stamp_key_time(&mut pending.request);
             match kp_control::handle(app, &pending.request) {
                 Ok(Action::Reply(value)) => pending.answer(Ok(value)),
                 Err(e) => pending.answer(Err(e)),
@@ -88,6 +89,19 @@ impl Control {
         if self.shots_in_flight.load(Ordering::SeqCst) > 0 {
             ctx.request_repaint();
         }
+    }
+}
+
+/// Key events from the control channel without a `time_ms` get the capture clock's current time,
+/// so scripted presses take part in chatter and stuck-key detection like real ones.
+fn stamp_key_time(request: &mut kp_control::Request) {
+    if !matches!(request.cmd.as_str(), "key.down" | "key.up") {
+        return;
+    }
+    if let Some(params) = request.params.as_object_mut() {
+        params
+            .entry("time_ms")
+            .or_insert_with(|| json!(crate::capture::now_ms()));
     }
 }
 
@@ -120,6 +134,20 @@ mod tests {
             .chain(list.iter().copied())
             .map(String::from)
             .collect()
+    }
+
+    #[test]
+    fn key_requests_get_a_time() {
+        let mut r = kp_control::parse(r#"{"cmd":"key.down","params":{"code":"KeyA"}}"#).unwrap();
+        stamp_key_time(&mut r);
+        assert!(r.params["time_ms"].is_u64());
+        let mut keep =
+            kp_control::parse(r#"{"cmd":"key.up","params":{"code":"KeyA","time_ms":7}}"#).unwrap();
+        stamp_key_time(&mut keep);
+        assert_eq!(keep.params["time_ms"], 7);
+        let mut other = kp_control::parse(r#"{"cmd":"state"}"#).unwrap();
+        stamp_key_time(&mut other);
+        assert!(other.params.is_null());
     }
 
     #[test]
