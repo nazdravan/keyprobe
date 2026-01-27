@@ -285,6 +285,46 @@ mod tests {
     }
 
     #[test]
+    fn key_counts() {
+        for (name, n) in [
+            ("ansi-104", 104),
+            ("iso-105", 105),
+            ("tkl-87", 87),
+            ("75-percent", 83),
+            ("60-percent", 61),
+        ] {
+            assert_eq!(layout(name).unwrap().keys.len(), n, "{name}");
+        }
+    }
+
+    #[test]
+    fn iso_specifics() {
+        let l = layout("iso-105").unwrap();
+        let code = |c: &str| KeyCode::new(c).unwrap();
+        let enter = l.key(&code("Enter")).unwrap();
+        assert_eq!((enter.rect.h, enter.rect.y), (2.0, R2));
+        assert_eq!(l.key(&code("IntlBackslash")).unwrap().rect.x, 1.25);
+        assert_eq!(l.key(&code("Backslash")).unwrap().label, "#");
+        assert_eq!(l.key(&code("Digit3")).unwrap().shift_label, "£");
+    }
+
+    #[test]
+    fn compact_boards_drop_the_right_keys() {
+        let code = |c: &str| KeyCode::new(c).unwrap();
+        let tkl = layout("tkl-87").unwrap();
+        assert!(tkl.key(&code("Numpad5")).is_none());
+        assert!(tkl.key(&code("Pause")).is_some());
+        let sixty = layout("60-percent").unwrap();
+        assert!(sixty.key(&code("F1")).is_none());
+        assert!(sixty.key(&code("Backquote")).is_none());
+        assert_eq!(sixty.key(&code("Escape")).unwrap().rect.x, 0.0);
+        assert_eq!(sixty.bounds().map(|b| (b.w, b.h)), Some((15.0, 5.0)));
+        let s75 = layout("75-percent").unwrap();
+        assert_eq!(s75.bounds().map(|b| b.right()), Some(16.0));
+        assert!(s75.key(&code("ArrowUp")).is_some());
+    }
+
+    #[test]
     fn ansi_104_shape() {
         let l = layout("ansi-104").unwrap();
         assert_eq!(l.keys.len(), ANSI_104.len());
