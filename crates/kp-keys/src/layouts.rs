@@ -6,7 +6,7 @@ use kp_doc::{KeyCap, KeyCode, Layout};
 use kp_geom::Rect;
 
 /// Ids accepted by `view.layout`, in menu order.
-pub const LAYOUT_NAMES: &[&str] = &["ansi-104"];
+pub const LAYOUT_NAMES: &[&str] = &["ansi-104", "iso-105", "tkl-87", "75-percent", "60-percent"];
 
 /// `(code, x, y, w, h, label, shift_label)` in key units.
 type Row = (&'static str, f32, f32, f32, f32, &'static str, &'static str);
@@ -136,12 +136,111 @@ static ANSI_104: &[Row] = &[
     ("NumpadDecimal", PAD + 2.0, R5, 1.0, 1.0, ".", "Del"),
 ];
 
+/// 75%: the main block plus one column on the right, function row without gaps, arrows tucked
+/// under right Shift. 83 keys.
+#[rustfmt::skip]
+static ANSI_75: &[Row] = &[
+    ("Escape", 0.0, 0.0, 1.0, 1.0, "Esc", ""),
+    ("F1", 1.25, 0.0, 1.0, 1.0, "F1", ""),
+    ("F2", 2.25, 0.0, 1.0, 1.0, "F2", ""),
+    ("F3", 3.25, 0.0, 1.0, 1.0, "F3", ""),
+    ("F4", 4.25, 0.0, 1.0, 1.0, "F4", ""),
+    ("F5", 5.5, 0.0, 1.0, 1.0, "F5", ""),
+    ("F6", 6.5, 0.0, 1.0, 1.0, "F6", ""),
+    ("F7", 7.5, 0.0, 1.0, 1.0, "F7", ""),
+    ("F8", 8.5, 0.0, 1.0, 1.0, "F8", ""),
+    ("F9", 9.75, 0.0, 1.0, 1.0, "F9", ""),
+    ("F10", 10.75, 0.0, 1.0, 1.0, "F10", ""),
+    ("F11", 11.75, 0.0, 1.0, 1.0, "F11", ""),
+    ("F12", 12.75, 0.0, 1.0, 1.0, "F12", ""),
+    ("PrintScreen", 14.0, 0.0, 1.0, 1.0, "PrtSc", ""),
+    ("Delete", 15.0, 0.0, 1.0, 1.0, "Del", ""),
+    ("Home", 15.0, 1.25, 1.0, 1.0, "Home", ""),
+    ("PageUp", 15.0, 2.25, 1.0, 1.0, "PgUp", ""),
+    ("PageDown", 15.0, 3.25, 1.0, 1.0, "PgDn", ""),
+    ("End", 15.0, 4.25, 1.0, 1.0, "End", ""),
+    ("ArrowUp", 14.0, 4.25, 1.0, 1.0, "↑", ""),
+    ("AltRight", 10.0, 5.25, 1.0, 1.0, "Alt", ""),
+    ("ContextMenu", 11.0, 5.25, 1.0, 1.0, "Menu", ""),
+    ("ControlRight", 12.0, 5.25, 1.0, 1.0, "Ctrl", ""),
+    ("ArrowLeft", 13.0, 5.25, 1.0, 1.0, "←", ""),
+    ("ArrowDown", 14.0, 5.25, 1.0, 1.0, "↓", ""),
+    ("ArrowRight", 15.0, 5.25, 1.0, 1.0, "→", ""),
+];
+
 /// A built-in layout by id.
 pub fn layout(name: &str) -> Option<Layout> {
     match name {
         "ansi-104" => Some(build("ansi-104", "ANSI 104 (full size)", ANSI_104)),
+        "iso-105" => Some(build("iso-105", "ISO 105 (UK legends)", &iso_105())),
+        "tkl-87" => Some(build("tkl-87", "TKL 87 (no keypad)", &tkl_87())),
+        "75-percent" => Some(build("75-percent", "75% (83 keys)", &ansi_75())),
+        "60-percent" => Some(build("60-percent", "60% (61 keys)", &sixty())),
         _ => None,
     }
+}
+
+/// Full-size ISO: tall Enter, the extra key between left Shift and Z, UK legends. Per the W3C
+/// code spec the `#~` key beside Enter keeps the code `Backslash`.
+fn iso_105() -> Vec<Row> {
+    let mut rows: Vec<Row> = ANSI_104
+        .iter()
+        .map(|&row| match row.0 {
+            "Digit2" => ("Digit2", row.1, row.2, row.3, row.4, "2", "\""),
+            "Digit3" => ("Digit3", row.1, row.2, row.3, row.4, "3", "£"),
+            "Quote" => ("Quote", row.1, row.2, row.3, row.4, "'", "@"),
+            "Backquote" => ("Backquote", row.1, row.2, row.3, row.4, "`", "¬"),
+            "Backslash" => ("Backslash", 12.75, R3, 1.0, 1.0, "#", "~"),
+            "Enter" => ("Enter", 13.75, R2, 1.25, 2.0, "Enter", ""),
+            "ShiftLeft" => ("ShiftLeft", 0.0, R4, 1.25, 1.0, "Shift", ""),
+            _ => row,
+        })
+        .collect();
+    rows.push(("IntlBackslash", 1.25, R4, 1.0, 1.0, "\\", "|"));
+    rows
+}
+
+/// Tenkeyless: the full-size board without the keypad.
+fn tkl_87() -> Vec<Row> {
+    ANSI_104.iter().copied().filter(|r| r.1 < PAD).collect()
+}
+
+/// 75%: the main block of the full-size board (without its function row) moved down by 1.25u,
+/// plus the compact function row and right column.
+fn ansi_75() -> Vec<Row> {
+    let mut rows: Vec<Row> = ANSI_104
+        .iter()
+        .copied()
+        .filter(|r| r.2 >= R1 && r.1 < NAV)
+        .filter(|r| {
+            !matches!(
+                r.0,
+                "AltRight" | "MetaRight" | "ContextMenu" | "ControlRight"
+            )
+        })
+        .map(|r| {
+            let y = r.2 - R1 + 1.25;
+            match r.0 {
+                "ShiftRight" => (r.0, r.1, y, 1.75, r.4, r.5, r.6),
+                _ => (r.0, r.1, y, r.3, r.4, r.5, r.6),
+            }
+        })
+        .collect();
+    rows.extend_from_slice(ANSI_75);
+    rows
+}
+
+/// 60%: only the main block; Esc takes the place of the backquote key.
+fn sixty() -> Vec<Row> {
+    ANSI_104
+        .iter()
+        .copied()
+        .filter(|r| r.2 >= R1 && r.1 < NAV)
+        .map(|r| match r.0 {
+            "Backquote" => ("Escape", r.1, 0.0, r.3, r.4, "Esc", "`"),
+            _ => (r.0, r.1, r.2 - R1, r.3, r.4, r.5, r.6),
+        })
+        .collect()
 }
 
 fn build(name: &str, title: &str, rows: &[Row]) -> Layout {
