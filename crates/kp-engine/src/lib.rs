@@ -173,6 +173,7 @@ mod tests {
             "view.theme",
             "edit.undo",
             "edit.redo",
+            "help.about",
         ] {
             assert!(ids.contains(&id), "missing {id}");
         }
@@ -193,6 +194,17 @@ mod tests {
             app.run("view.layout", &json!({ "name": name })).unwrap();
             assert_eq!(&app.session().doc().view.layout, name);
         }
+    }
+
+    #[test]
+    fn about_is_a_command() {
+        let mut app = App::default();
+        let before = app.session().clone();
+        let about = app.run("help.about", &Value::Null).unwrap();
+        assert_eq!(about["name"], "KeyProbe");
+        assert_eq!(about["version"], env!("CARGO_PKG_VERSION"));
+        assert!(about["sources"].as_array().is_some_and(|s| !s.is_empty()));
+        assert_eq!(app.session(), &before);
     }
 
     #[test]

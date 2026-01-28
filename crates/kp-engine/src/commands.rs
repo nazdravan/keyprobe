@@ -128,11 +128,39 @@ pub fn builtin() -> Registry {
                 Ok(json!(s.redo()))
             },
         },
+        CommandSpec {
+            id: "help.about",
+            label: "About KeyProbe",
+            menu: Some("Help/About"),
+            shortcut: None,
+            params: "{}",
+            enabled: always,
+            run: |_, p| {
+                no_params("help.about", p)?;
+                Ok(about())
+            },
+        },
     ] {
         // Built-in ids are distinct; a duplicate here is caught by the `builtin_registry` test.
         let _ = r.register(spec);
     }
     r
+}
+
+/// What the About dialog shows (also reachable through the control channel).
+pub fn about() -> Value {
+    json!({
+        "name": "KeyProbe",
+        "version": env!("CARGO_PKG_VERSION"),
+        "description": "Keyboard tester: see every key you press and its codes.",
+        "license": env!("CARGO_PKG_LICENSE"),
+        "repository": "https://github.com/nazdravan/keyprobe",
+        "sources": [
+            "W3C UI Events KeyboardEvent code values",
+            "USB HID Usage Tables, Keyboard/Keypad page",
+            "Microsoft Virtual-Key Codes and Keyboard Scan Code Specification",
+        ],
+    })
 }
 
 fn always(_: &Session) -> Result<(), String> {
