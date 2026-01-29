@@ -27,6 +27,8 @@ pub struct KeyProbeUi {
     applied_theme: Option<String>,
     /// Current time on the same clock as the key events' `time_ms` (set by the app each frame).
     now_ms: Option<u64>,
+    /// The About dialog's content while it is open (the result of `help.about`).
+    about: Option<Value>,
 }
 
 impl KeyProbeUi {
@@ -60,6 +62,7 @@ impl KeyProbeUi {
             ui.separator();
             ui.vertical(|ui| event_log(ui, app));
         });
+        self.about_window(ui.ctx());
         if let Some(err) = &self.last_error {
             ui.colored_label(ui.visuals().error_fg_color, err);
         }
@@ -78,6 +81,33 @@ impl KeyProbeUi {
             self.applied_theme = Some(id.to_owned());
             // This frame's panel background is already drawn; paint again with the new one.
             ctx.request_repaint();
+        }
+    }
+
+    fn about_window(&mut self, ctx: &egui::Context) {
+        let Some(about) = &self.about else {
+            return;
+        };
+        let text = |key: &str| about[key].as_str().unwrap_or_default().to_owned();
+        let mut open = true;
+        egui::Window::new("About KeyProbe")
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+            .show(ctx, |ui| {
+                ui.heading(format!("{} {}", text("name"), text("version")));
+                ui.label(text("description"));
+                ui.label(format!("License: {}", text("license")));
+                ui.hyperlink(text("repository"));
+                ui.separator();
+                ui.label("Key codes from public specifications:");
+                for s in about["sources"].as_array().into_iter().flatten() {
+                    ui.label(format!("• {}", s.as_str().unwrap_or_default()));
+                }
+            });
+        if !open {
+            self.about = None;
         }
     }
 
@@ -146,6 +176,12 @@ impl KeyProbeUi {
                 };
                 if button.clicked() {
                     self.run(app, id, &Value::Null);
+                }
+            }
+            if ui.button("About…").clicked() {
+                match app.run("help.about", &Value::Null) {
+                    Ok(about) => self.about = Some(about),
+                    Err(e) => self.last_error = Some(e.to_string()),
                 }
             }
             ui.separator();
@@ -314,6 +350,21 @@ mod tests {
                 "KeyA ↓"
             ]
         );
+    }
+
+    #[test]
+    fn about_window_renders_headless() {
+        let mut app = App::default();
+        let mut ui_state = KeyProbeUi {
+            about: Some(app.run("help.about", &Value::Null).unwrap()),
+            ..Default::default()
+        };
+        let ctx = egui::Context::default();
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            ui_state.show(ui, &mut app);
+        });
+        out.textures_delta.clear();
+        assert!(ui_state.about.is_some());
     }
 
     #[test]
