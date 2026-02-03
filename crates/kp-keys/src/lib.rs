@@ -31,7 +31,9 @@ pub use layouts::{LAYOUT_NAMES, layout};
 pub struct KeyInfo {
     /// W3C `code` value.
     pub code: &'static str,
-    /// USB HID usage id on the Keyboard/Keypad page (0x07).
+    /// USB HID usage page: 0x07 Keyboard/Keypad, 0x0C Consumer (media and browser keys).
+    pub hid_page: u16,
+    /// USB HID usage id on `hid_page`.
     pub hid: u16,
     /// Windows virtual-key code.
     pub vk: u8,
@@ -40,7 +42,14 @@ pub struct KeyInfo {
     pub scan: u8,
     /// Windows extended-key flag (lParam bit 24; `E0`-prefixed in Set 1).
     pub extended: bool,
+    /// Caveat shown with the readout (e.g. a VK that depends on the Windows layout); empty if none.
+    pub note: &'static str,
 }
+
+/// Keyboard/Keypad usage page.
+pub const PAGE_KEYBOARD: u16 = 0x07;
+/// Consumer usage page (media, volume, browser and launch keys).
+pub const PAGE_CONSUMER: u16 = 0x0C;
 
 const fn k(
     code: &'static str,
@@ -52,13 +61,28 @@ const fn k(
 ) -> KeyInfo {
     KeyInfo {
         code,
+        hid_page: PAGE_KEYBOARD,
         hid,
         vk,
         vk_name,
         scan,
         extended,
+        note: "",
     }
 }
+
+/// A [`k`] row with a usage page other than Keyboard and/or a caveat.
+const fn x(row: KeyInfo, hid_page: u16, note: &'static str) -> KeyInfo {
+    KeyInfo {
+        hid_page,
+        note,
+        ..row
+    }
+}
+
+const JP: &str = "Japanese keyboards; VK as with a Japanese layout.";
+const K: u16 = PAGE_KEYBOARD;
+const C: u16 = PAGE_CONSUMER;
 
 const N: bool = false;
 const E: bool = true;
@@ -191,6 +215,107 @@ pub static KEYS: &[KeyInfo] = &[
     k("ShiftRight", 0xE5, 0x10, "VK_SHIFT", 0x36, N),
     k("AltRight", 0xE6, 0x12, "VK_MENU", 0x38, E),
     k("MetaRight", 0xE7, 0x5C, "VK_RWIN", 0x5C, E),
+    // Non-US keys (G15). Their VK depends on the active Windows layout; the note says which.
+    x(
+        k("NumpadEqual", 0x67, 0x92, "VK_OEM_NEC_EQUAL", 0x59, N),
+        K,
+        "Keypad = (Mac and NEC keyboards); the VK depends on the keyboard driver.",
+    ),
+    x(
+        k("IntlRo", 0x87, 0xC1, "VK_ABNT_C1", 0x73, N),
+        K,
+        "Brazilian ABNT2 /? and Japanese \\_ key; VK_OEM_102 with a Japanese layout.",
+    ),
+    x(k("KanaMode", 0x88, 0x15, "VK_KANA", 0x70, N), K, JP),
+    x(k("IntlYen", 0x89, 0xDC, "VK_OEM_5", 0x7D, N), K, JP),
+    x(k("Convert", 0x8A, 0x1C, "VK_CONVERT", 0x79, N), K, JP),
+    x(k("NonConvert", 0x8B, 0x1D, "VK_NONCONVERT", 0x7B, N), K, JP),
+    // Media, volume, browser and launch keys: Consumer page, E0-prefixed in Set 1.
+    x(
+        k(
+            "MediaTrackPrevious",
+            0xB6,
+            0xB1,
+            "VK_MEDIA_PREV_TRACK",
+            0x10,
+            E,
+        ),
+        C,
+        "",
+    ),
+    x(
+        k("MediaTrackNext", 0xB5, 0xB0, "VK_MEDIA_NEXT_TRACK", 0x19, E),
+        C,
+        "",
+    ),
+    x(
+        k("AudioVolumeMute", 0xE2, 0xAD, "VK_VOLUME_MUTE", 0x20, E),
+        C,
+        "",
+    ),
+    x(
+        k("MediaPlayPause", 0xCD, 0xB3, "VK_MEDIA_PLAY_PAUSE", 0x22, E),
+        C,
+        "",
+    ),
+    x(k("MediaStop", 0xB7, 0xB2, "VK_MEDIA_STOP", 0x24, E), C, ""),
+    x(
+        k("AudioVolumeDown", 0xEA, 0xAE, "VK_VOLUME_DOWN", 0x2E, E),
+        C,
+        "",
+    ),
+    x(
+        k("AudioVolumeUp", 0xE9, 0xAF, "VK_VOLUME_UP", 0x30, E),
+        C,
+        "",
+    ),
+    x(
+        k("BrowserHome", 0x223, 0xAC, "VK_BROWSER_HOME", 0x32, E),
+        C,
+        "",
+    ),
+    x(
+        k("BrowserSearch", 0x221, 0xAA, "VK_BROWSER_SEARCH", 0x65, E),
+        C,
+        "",
+    ),
+    x(
+        k(
+            "BrowserFavorites",
+            0x22A,
+            0xAB,
+            "VK_BROWSER_FAVORITES",
+            0x66,
+            E,
+        ),
+        C,
+        "",
+    ),
+    x(
+        k("BrowserRefresh", 0x227, 0xA8, "VK_BROWSER_REFRESH", 0x67, E),
+        C,
+        "",
+    ),
+    x(
+        k("BrowserStop", 0x226, 0xA9, "VK_BROWSER_STOP", 0x68, E),
+        C,
+        "",
+    ),
+    x(
+        k("BrowserForward", 0x225, 0xA7, "VK_BROWSER_FORWARD", 0x69, E),
+        C,
+        "",
+    ),
+    x(
+        k("BrowserBack", 0x224, 0xA6, "VK_BROWSER_BACK", 0x6A, E),
+        C,
+        "",
+    ),
+    x(
+        k("LaunchMail", 0x18A, 0xB4, "VK_LAUNCH_MAIL", 0x6C, E),
+        C,
+        "",
+    ),
 ];
 
 /// Other names platforms use for the same physical key, mapped to the W3C name.
@@ -226,8 +351,13 @@ pub fn by_scan(scan: u8, extended: bool) -> Option<&'static KeyInfo> {
         .find(|k| k.scan == scan && k.extended == extended)
 }
 
+/// Looks a key up by its usage on the Keyboard/Keypad page.
 pub fn by_hid(usage: u16) -> Option<&'static KeyInfo> {
-    KEYS.iter().find(|k| k.hid == usage)
+    by_usage(PAGE_KEYBOARD, usage)
+}
+
+pub fn by_usage(page: u16, usage: u16) -> Option<&'static KeyInfo> {
+    KEYS.iter().find(|k| k.hid_page == page && k.hid == usage)
 }
 
 /// `0x20 (32)`, the readout format of the reference app's status bar.
@@ -245,6 +375,7 @@ mod tests {
     #[test]
     fn matches_reference_screenshots() {
         let space = by_code("Space").unwrap();
+        assert_eq!(space.hid_page, PAGE_KEYBOARD);
         assert_eq!((space.vk, space.vk_name), (0x20, "VK_SPACE"));
         assert_eq!(hex_dec(space.vk), "0x20 (32)");
         assert_eq!(hex_dec(space.scan), "0x39 (57)");
@@ -329,7 +460,7 @@ mod tests {
     #[test]
     fn columns_are_unique_where_they_must_be() {
         let codes: BTreeSet<_> = KEYS.iter().map(|k| k.code).collect();
-        let hids: BTreeSet<_> = KEYS.iter().map(|k| k.hid).collect();
+        let hids: BTreeSet<_> = KEYS.iter().map(|k| (k.hid_page, k.hid)).collect();
         let scans: BTreeSet<_> = KEYS.iter().map(|k| (k.scan, k.extended)).collect();
         assert_eq!(codes.len(), KEYS.len(), "duplicate code");
         assert_eq!(hids.len(), KEYS.len(), "duplicate HID usage");
@@ -365,6 +496,36 @@ mod tests {
         assert_eq!(by_code("SuperLeft").unwrap().code, "MetaLeft");
         assert_eq!(by_code("OSRight").unwrap().code, "MetaRight");
         assert_eq!(by_hid(0x2C).unwrap().code, "Space");
+        // Consumer page usages don't collide with keyboard ones (0xE2 is also AltLeft).
+        assert_eq!(by_hid(0xE2).unwrap().code, "AltLeft");
+        assert_eq!(
+            by_usage(PAGE_CONSUMER, 0xE2).unwrap().code,
+            "AudioVolumeMute"
+        );
+    }
+
+    #[test]
+    fn non_us_and_media_keys() {
+        for code in [
+            "IntlRo",
+            "IntlYen",
+            "NumpadEqual",
+            "KanaMode",
+            "Convert",
+            "NonConvert",
+            "MediaPlayPause",
+            "AudioVolumeUp",
+            "BrowserBack",
+            "LaunchMail",
+        ] {
+            assert!(by_code(code).is_some(), "missing {code}");
+        }
+        assert!(!by_code("IntlYen").unwrap().note.is_empty());
+        assert!(by_code("KeyA").unwrap().note.is_empty());
+        let play = by_code("MediaPlayPause").unwrap();
+        assert_eq!((play.vk, play.scan, play.extended), (0xB3, 0x22, true));
+        assert_eq!(by_scan(0x22, true).unwrap().code, "MediaPlayPause");
+        assert_eq!(by_scan(0x22, false).unwrap().code, "KeyG");
     }
 
     proptest! {
@@ -381,7 +542,7 @@ mod tests {
         fn scan_and_hid_round_trip(i in 0..KEYS.len()) {
             let key = &KEYS[i];
             prop_assert_eq!(by_scan(key.scan, key.extended), Some(key));
-            prop_assert_eq!(by_hid(key.hid), Some(key));
+            prop_assert_eq!(by_usage(key.hid_page, key.hid), Some(key));
             prop_assert_eq!(by_code(key.code), Some(key));
         }
     }
