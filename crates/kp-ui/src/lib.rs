@@ -287,6 +287,9 @@ pub fn readout_rows(event: &KeyEvent) -> Vec<(&'static str, String)> {
             ));
             let ext = if k.extended { "  (Extended)" } else { "" };
             rows.push(("Scan Code", format!("{}{ext}", kp_keys::hex_dec(k.scan))));
+            if !k.note.is_empty() {
+                rows.push(("Note", k.note.to_owned()));
+            }
         }
         None => rows.push(("VK / Scan", "not in key table".to_owned())),
     }
@@ -382,16 +385,32 @@ mod tests {
     }
 
     #[test]
+    fn layout_dependent_keys_carry_their_note() {
+        let e = KeyEvent {
+            code: KeyCode::new("IntlYen").unwrap(),
+            down: true,
+            repeat: false,
+            native: NativeCode::default(),
+            time_ms: None,
+        };
+        let rows = readout_rows(&e);
+        assert!(
+            rows.iter()
+                .any(|(name, v)| *name == "Note" && v.contains("Japanese"))
+        );
+    }
+
+    #[test]
     fn unknown_key_is_reported_not_hidden() {
         let e = KeyEvent {
-            code: KeyCode::new("MediaPlayPause").unwrap(),
+            code: KeyCode::new("LaunchApp1").unwrap(),
             down: false,
             repeat: false,
             native: NativeCode::default(),
             time_ms: None,
         };
         let rows = readout_rows(&e);
-        assert_eq!(rows[0].1, "MediaPlayPause — up");
+        assert_eq!(rows[0].1, "LaunchApp1 — up");
         assert_eq!(rows[1], ("VK / Scan", "not in key table".to_owned()));
     }
 

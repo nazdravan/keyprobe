@@ -238,7 +238,13 @@ fn tooltip(ui: &mut egui::Ui, key: &KeyCap, test: &TestState, now_ms: Option<u64
         ));
         let ext = if info.extended { "  (Extended)" } else { "" };
         ui.label(format!("Scan {}{ext}", kp_keys::hex_dec(info.scan)));
-        ui.label(format!("USB HID 0x{:02X}", info.hid));
+        ui.label(format!(
+            "USB HID page 0x{:02X}, usage 0x{:02X}",
+            info.hid_page, info.hid
+        ));
+        if !info.note.is_empty() {
+            ui.weak(info.note);
+        }
     }
     let presses = test.presses.get(&key.code).copied().unwrap_or(0);
     ui.label(format!("Pressed {presses}×"));
