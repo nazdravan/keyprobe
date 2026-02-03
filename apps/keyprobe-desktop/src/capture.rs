@@ -228,10 +228,35 @@ mod tests {
         K::IntlBackslash,
     ];
 
+    /// Non-US, media and browser keys (G15).
+    const EXTRA: &[K] = &[
+        K::NumpadEqual,
+        K::IntlRo,
+        K::KanaMode,
+        K::IntlYen,
+        K::Convert,
+        K::NonConvert,
+        K::MediaTrackPrevious,
+        K::MediaTrackNext,
+        K::AudioVolumeMute,
+        K::MediaPlayPause,
+        K::MediaStop,
+        K::AudioVolumeDown,
+        K::AudioVolumeUp,
+        K::BrowserHome,
+        K::BrowserSearch,
+        K::BrowserFavorites,
+        K::BrowserRefresh,
+        K::BrowserStop,
+        K::BrowserForward,
+        K::BrowserBack,
+        K::LaunchMail,
+    ];
+
     #[test]
     fn every_board_key_maps_into_the_key_table() {
         let mut seen = BTreeSet::new();
-        for &k in BOARD {
+        for &k in BOARD.iter().chain(EXTRA) {
             let code = w3c_code(PhysicalKey::Code(k)).unwrap();
             assert!(
                 kp_keys::by_code(&code).is_some(),
