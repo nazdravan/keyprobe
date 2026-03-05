@@ -3,6 +3,7 @@
 
 mod capture;
 mod control;
+mod icon;
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -33,11 +34,15 @@ fn main() -> eframe::Result {
     let event_loop = EventLoop::<UserEvent>::with_user_event().build()?;
     let queue = KeyQueue::default();
     let app_queue = Arc::clone(&queue);
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_title("KeyProbe")
+        .with_inner_size([1000.0, 440.0])
+        .with_min_inner_size([520.0, 300.0]);
+    if let Some(icon) = icon::window_icon() {
+        viewport = viewport.with_icon(icon);
+    }
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_title("KeyProbe")
-            .with_inner_size([1000.0, 440.0])
-            .with_min_inner_size([520.0, 300.0]),
+        viewport,
         ..Default::default()
     };
     let inner = eframe::create_native(
