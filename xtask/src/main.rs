@@ -1,11 +1,13 @@
 //! Repo automation. Run as `cargo xtask <task>`.
 //!
-//! - `ci`     — the gate before every commit: fmt, clippy, test, layers, wasm.
+//! - `ci`     — the gate before every commit: fmt, clippy, test, layers, wasm, assets.
 //! - `layers` — every crate declares `[package.metadata.layer] level`; a crate may only depend on
 //!   lower layers, and nothing below L6 may (even transitively) pull in a UI/windowing crate.
 //! - `wasm`   — `cargo clippy -D warnings` for wasm32 of every crate that must run on the web
 //!   (level <= 6 unless the crate sets `[package.metadata.layer] wasm = false`, plus any crate
 //!   that sets `wasm = true`), so wasm-only code is linted too.
+//! - `assets` — `assets/theme.toml` exists and every image in `assets/` and `docs/assets/` is
+//!   named by a generator script in `assets/*.py` (images are code, never hand-made).
 //! - `web`    — release build of `keyprobe-web` + `wasm-bindgen` → `dist/` (open via a static
 //!   server, e.g. `python3 -m http.server -d dist`).
 
@@ -37,9 +39,10 @@ fn main() -> ExitCode {
         "test" => test(),
         "layers" => layers(),
         "wasm" => wasm(),
+        "assets" => assets(),
         "web" => web(),
         _ => Err(format!(
-            "unknown task {task:?}; expected one of: ci, fmt, clippy, test, layers, wasm, web"
+            "unknown task {task:?}; expected one of: ci, fmt, clippy, test, layers, wasm, assets, web"
         )),
     };
     match result {
@@ -58,6 +61,7 @@ fn ci() -> Result {
         ("test", test),
         ("layers", layers),
         ("wasm", wasm),
+        ("assets", assets),
     ] {
         eprintln!("== xtask {name}");
         step().map_err(|e| format!("{name}: {e}"))?;
@@ -196,6 +200,60 @@ fn layers() -> Result {
         Ok(())
     } else {
         Err(errors.join("\n  "))
+    }
+}
+
+const IMAGE_EXTS: &[&str] = &["png", "ico", "icns", "svg", "jpg", "jpeg", "gif", "webp"];
+
+fn assets() -> Result {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or("xtask has no parent directory")?;
+    let dir = root.join("assets");
+    if !dir.join("theme.toml").is_file() {
+        return Err("assets/theme.toml is missing".into());
+    }
+    let read_dir = |d: &std::path::Path| -> Result<Vec<std::path::PathBuf>> {
+        match std::fs::read_dir(d) {
+            Ok(entries) => Ok(entries.filter_map(|e| e.ok().map(|e| e.path())).collect()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+            Err(e) => Err(format!("{}: {e}", d.display())),
+        }
+    };
+    let mut generators = String::new();
+    for path in read_dir(&dir)? {
+        if path.extension().is_some_and(|e| e == "py") {
+            generators +=
+                &std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        }
+    }
+    let mut images = read_dir(&dir)?;
+    images.extend(read_dir(&root.join("docs").join("assets"))?);
+    let mut orphans = Vec::new();
+    let mut count = 0;
+    for path in images {
+        let is_image = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| IMAGE_EXTS.contains(&e.to_ascii_lowercase().as_str()));
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if is_image {
+            count += 1;
+            if !generators.contains(name) {
+                orphans.push(name.to_owned());
+            }
+        }
+    }
+    if orphans.is_empty() {
+        eprintln!("assets: {count} images, each named by a generator");
+        Ok(())
+    } else {
+        Err(format!(
+            "images with no generator in assets/*.py: {}",
+            orphans.join(", ")
+        ))
     }
 }
 

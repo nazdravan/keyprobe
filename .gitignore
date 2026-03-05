@@ -4,3 +4,4 @@
 # Material from the original GPL-3 app (README, screenshots, binary): local only,
 # never committed; the binary is never run (clean-room).
 /reference/
+__pycache__/
