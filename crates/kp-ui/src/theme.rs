@@ -4,6 +4,25 @@ use egui::{Color32, Stroke, Theme, Visuals};
 
 use crate::Palette;
 
+/// Colours from `assets/theme.toml`; `brand_matches_theme_toml` keeps the two in sync.
+pub mod brand {
+    use egui::Color32;
+
+    pub const ACCENT: Color32 = Color32::from_rgb(0x58, 0xbe, 0x6e);
+    pub const ACCENT_PRESS: Color32 = Color32::from_rgb(0x46, 0xa3, 0x5a);
+    pub const HELD: Color32 = Color32::from_rgb(0xf5, 0xb2, 0x32);
+    pub const ALERT: Color32 = Color32::from_rgb(0xe6, 0x46, 0x3c);
+    pub const INK: Color32 = Color32::from_rgb(0x14, 0x18, 0x16);
+    pub const BG_DARK: Color32 = Color32::from_rgb(0x1b, 0x1b, 0x1b);
+    pub const FG_DARK: Color32 = Color32::from_rgb(0xd4, 0xd8, 0xd5);
+    pub const KEY_DARK: Color32 = Color32::from_rgb(0x3c, 0x3c, 0x3c);
+    pub const SELECT_DARK: Color32 = Color32::from_rgb(0x2f, 0x6e, 0x3c);
+    pub const BG_LIGHT: Color32 = Color32::from_rgb(0xf8, 0xf8, 0xf8);
+    pub const FG_LIGHT: Color32 = Color32::from_rgb(0x26, 0x2a, 0x27);
+    pub const KEY_LIGHT: Color32 = Color32::from_rgb(0xe4, 0xe4, 0xe4);
+    pub const SELECT_LIGHT: Color32 = Color32::from_rgb(0xbf, 0xe6, 0xc8);
+}
+
 /// `(id, menu title)`, in menu order; ids match `kp_engine::THEMES`.
 pub const THEMES: &[(&str, &str)] = &[
     ("dark", "Dark"),
@@ -21,10 +40,43 @@ pub fn title(id: &str) -> &str {
 /// The egui base theme and visuals for a theme id; unknown ids fall back to dark.
 pub fn visuals(id: &str) -> (Theme, Visuals) {
     match id {
-        "light" => (Theme::Light, Visuals::light()),
+        "light" => (Theme::Light, light()),
         "high-contrast" => (Theme::Dark, high_contrast()),
-        _ => (Theme::Dark, Visuals::dark()),
+        _ => (Theme::Dark, dark()),
     }
+}
+
+fn dark() -> Visuals {
+    branded(
+        Visuals::dark(),
+        brand::BG_DARK,
+        brand::FG_DARK,
+        brand::KEY_DARK,
+        brand::SELECT_DARK,
+    )
+}
+
+fn light() -> Visuals {
+    branded(
+        Visuals::light(),
+        brand::BG_LIGHT,
+        brand::FG_LIGHT,
+        brand::KEY_LIGHT,
+        brand::SELECT_LIGHT,
+    )
+}
+
+/// egui's base visuals with the theme's background, text, key and accent colours.
+fn branded(mut v: Visuals, bg: Color32, fg: Color32, key: Color32, select: Color32) -> Visuals {
+    v.panel_fill = bg;
+    v.window_fill = bg;
+    v.widgets.noninteractive.fg_stroke.color = fg;
+    v.widgets.inactive.weak_bg_fill = key;
+    v.hyperlink_color = brand::ACCENT;
+    v.selection.bg_fill = select;
+    v.selection.stroke = Stroke::new(2.0, brand::ACCENT);
+    v.widgets.active.bg_stroke = Stroke::new(1.0, brand::ACCENT_PRESS);
+    v
 }
 
 /// Makes `id` the active theme. Each call sets the base theme's visuals explicitly, so leaving
@@ -108,8 +160,47 @@ mod tests {
         apply(&ctx, "high-contrast");
         assert_eq!(ctx.global_style().visuals.panel_fill, Color32::BLACK);
         apply(&ctx, "dark");
-        assert_eq!(ctx.global_style().visuals, Visuals::dark());
+        assert_eq!(ctx.global_style().visuals, dark());
         apply(&ctx, "light");
-        assert_eq!(ctx.global_style().visuals, Visuals::light());
+        assert_eq!(ctx.global_style().visuals, light());
+    }
+
+    /// Every `key = "#rrggbb"` in `assets/theme.toml` has the same value in `brand`.
+    #[test]
+    fn brand_matches_theme_toml() {
+        let toml = include_str!("../../../assets/theme.toml");
+        let ours = [
+            ("accent", brand::ACCENT),
+            ("accent_press", brand::ACCENT_PRESS),
+            ("held", brand::HELD),
+            ("alert", brand::ALERT),
+            ("ink", brand::INK),
+            ("bg_dark", brand::BG_DARK),
+            ("fg_dark", brand::FG_DARK),
+            ("key_dark", brand::KEY_DARK),
+            ("select_dark", brand::SELECT_DARK),
+            ("bg_light", brand::BG_LIGHT),
+            ("fg_light", brand::FG_LIGHT),
+            ("key_light", brand::KEY_LIGHT),
+            ("select_light", brand::SELECT_LIGHT),
+        ];
+        let mut seen = 0;
+        for line in toml.lines() {
+            let Some((key, rest)) = line.split_once('=') else {
+                continue;
+            };
+            let value = rest.split('#').nth(1).map(|h| &h[..6]);
+            let Some(hex) = value.filter(|_| rest.trim_start().starts_with("\"#")) else {
+                continue;
+            };
+            let key = key.trim();
+            let (_, colour) = ours
+                .iter()
+                .find(|(k, _)| *k == key)
+                .unwrap_or_else(|| panic!("theme.toml colour {key} missing from brand"));
+            assert_eq!(colour.to_hex()[1..7], *hex, "{key}");
+            seen += 1;
+        }
+        assert_eq!(seen, ours.len());
     }
 }

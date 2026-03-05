@@ -3,6 +3,8 @@
 use egui::{Align2, Color32, CornerRadius, FontId, Pos2, Rect, Sense, Stroke, StrokeKind, Vec2};
 use kp_doc::{Document, KeyCap, Layout, TestState};
 
+use crate::theme::brand;
+
 /// Gap between neighbouring keys, in key units.
 const GAP: f32 = 0.08;
 /// Largest key size in points; beyond it the board stops growing.
@@ -67,10 +69,10 @@ impl Palette {
         Self {
             untested_fill: v.widgets.inactive.weak_bg_fill,
             untested_text: v.text_color(),
-            tested_fill: Color32::from_rgb(88, 190, 110),
-            held_fill: Color32::from_rgb(245, 178, 50),
-            alert: Color32::from_rgb(230, 70, 60),
-            marked_text: Color32::from_rgb(20, 24, 22),
+            tested_fill: brand::ACCENT,
+            held_fill: brand::HELD,
+            alert: brand::ALERT,
+            marked_text: brand::INK,
             border: v.widgets.noninteractive.bg_stroke.color,
             last: v.selection.stroke.color,
         }
