@@ -1,0 +1,22 @@
+# The one source of KeyProbe's look. The app (kp-ui `theme.rs`, kept in sync by a test), the icon
+# (`assets/icon.py`), the README banner (`assets/banner.py`) and the landing page read these values.
+# Taken from the app's own UI: the key-state colours of the on-screen keyboard and egui's
+# dark/light backgrounds.
+
+name = "KeyProbe"
+accent = "#58be6e"        # a tested key; buttons, links, highlights
+accent_press = "#46a35a"
+held = "#f5b232"          # a key held down right now
+alert = "#e6463c"         # stuck key, chatter badge
+ink = "#141816"           # legend text on a lit key
+bg_dark = "#1b1b1b"
+fg_dark = "#d4d8d5"
+key_dark = "#3c3c3c"      # an untested key
+select_dark = "#2f6e3c"
+bg_light = "#f8f8f8"
+fg_light = "#262a27"
+key_light = "#e4e4e4"
+select_light = "#bfe6c8"
+font = "Ubuntu Light"     # egui's default UI font, bundled in assets/fonts/ (UFL.txt)
+mono = "Hack"             # egui's default monospace font, the readout's codes (Hack-Regular.txt)
+motif = "keycaps that light up as they are tested"
