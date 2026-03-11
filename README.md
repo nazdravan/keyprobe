@@ -219,6 +219,9 @@ printf '%s\n' '{"id":1,"cmd":"key.down","params":{"code":"KeyA"}}' \
 cargo xtask ci   # fmt, clippy -D warnings, tests, layer check, wasm clippy, assets check
 ```
 
+`.github/workflows/ci.yml` runs the same gate on Linux, Windows and macOS for every push to `main`
+and every pull request.
+
 The tests cover the key table and layouts (property tests on lookups and geometry), the engine
 (undo/redo, panic rollback, property tests on arbitrary command params), the UI panels (headless
 egui), key mapping on desktop and web, the control channel and the theme staying in sync with
