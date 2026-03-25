@@ -1,0 +1,120 @@
+/* Every colour and font is a custom property from theme.css (generated from assets/theme.toml);
+   site/tests check that this file has no colour of its own. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 300 18px/1.6 var(--font);
+}
+
+a { color: var(--accent-press); text-underline-offset: 3px; }
+@media (prefers-color-scheme: dark) { a { color: var(--accent); } }
+
+code { font-family: var(--mono); font-size: 0.85em; }
+
+img { max-width: 100%; height: auto; }
+
+h2 { font-weight: 400; font-size: 1.9rem; margin: 0 0 1.2rem; }
+h3 { font-weight: 400; font-size: 1.2rem; margin: 0 0 0.4rem; }
+
+.hero {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 56px 16px 32px;
+  text-align: center;
+}
+.hero .mark { width: 96px; height: 96px; }
+.hero h1 { margin: 18px 0 0; line-height: 0; }
+.hero .banner { width: min(100%, 860px); }
+.pitch { font-size: 1.35rem; max-width: 34em; margin: 12px auto 28px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.meta { margin-top: 18px; font-size: 0.95rem; opacity: 0.8; }
+
+.button {
+  display: inline-block;
+  padding: 12px 26px;
+  border-radius: 10px;
+  border: 2px solid var(--accent);
+  color: var(--fg);
+  background: transparent;
+  font-weight: 400;
+  text-decoration: none;
+  transition: background-color 120ms ease-out, transform 120ms ease-out;
+}
+.button:hover { background: var(--select); }
+.button:active { transform: translateY(1px); }
+.button.primary { background: var(--accent); color: var(--ink); }
+.button.primary:hover { background: var(--accent-press); }
+.button:focus-visible { outline: 3px solid var(--held); outline-offset: 2px; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+
+.shot { margin: 0; }
+.shot img {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--key);
+}
+.main-shot { margin-bottom: 72px; }
+
+section { margin-bottom: 72px; }
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 28px;
+  margin-bottom: 36px;
+}
+.features article {
+  border-top: 4px solid var(--accent);
+  padding-top: 14px;
+}
+.features article:nth-child(3) { border-top-color: var(--held); }
+.features p { margin: 0; }
+
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+
+.downloads { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.downloads th, .downloads td {
+  text-align: left;
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid var(--key);
+  vertical-align: top;
+}
+.downloads th { font-weight: 400; opacity: 0.75; }
+.downloads td:first-child { font-family: var(--mono); font-size: 0.85rem; word-break: break-all; }
+.downloads td:last-child { white-space: nowrap; }
+.note { font-size: 0.9rem; opacity: 0.8; }
+
+.release { border-left: 4px solid var(--accent); padding-left: 18px; margin-bottom: 28px; }
+.release-head { display: flex; gap: 14px; align-items: baseline; }
+.release-head h3 { margin: 0; }
+.release-head time { opacity: 0.75; font-size: 0.95rem; }
+.release-body h4 { font-weight: 400; margin: 12px 0 4px; }
+.release-body ul { margin: 0; padding-left: 1.2em; }
+
+footer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  border-top: 1px solid var(--key);
+}
+footer p { margin: 6px 0; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  .hero { padding-top: 36px; }
+  .hero .mark { width: 72px; height: 72px; }
+  .pitch { font-size: 1.15rem; }
+  .downloads th:nth-child(2), .downloads td:nth-child(2) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button { transition: none; }
+}

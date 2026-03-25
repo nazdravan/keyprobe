@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description }}">
+  <link rel="canonical" href="{{ site_url }}">
+  <link rel="alternate" hreflang="{{ lang }}" href="{{ site_url }}">
+  <link rel="alternate" hreflang="x-default" href="{{ site_url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="KeyProbe">
+  <meta property="og:description" content="{{ pitch }}">
+  <meta property="og:url" content="{{ site_url }}">
+  <meta property="og:image" content="{{ site_url }}assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preload" href="assets/Ubuntu-Light.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="assets/theme.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script type="module" src="assets/main.js"></script>
+</head>
+<body>
+  <header class="hero">
+    <img class="mark" src="assets/mark.png" width="130" height="130" alt="">
+    <h1><img class="banner" src="assets/banner.png" alt="KeyProbe"></h1>
+    <p class="pitch">{{ pitch }}</p>
+    <div class="actions">
+      <a id="download-main" class="button primary" href="#downloads"
+         data-kinds="{{ kinds_json }}"
+         data-label-windows="{{ download_windows }}"
+         data-label-mac="{{ download_mac }}"
+         data-label-linux="{{ download_linux }}">{{ download }}</a>
+      <a class="button" href="app/">{{ run_web }}</a>
+    </div>
+    <p class="meta">{{{ version_html }}} · <a href="#downloads">{{ other_platforms }}</a></p>
+  </header>
+
+  <main>
+    <figure class="shot main-shot">
+      <img src="assets/screenshot-main.png" width="2000" height="880" alt="{{ shot_main_alt }}">
+    </figure>
+
+    <section id="features">
+      <h2>{{ features_title }}</h2>
+      <div class="features">
+        <article><h3>{{ f_keyboard_title }}</h3><p>{{ f_keyboard_body }}</p></article>
+        <article><h3>{{ f_codes_title }}</h3><p>{{ f_codes_body }}</p></article>
+        <article><h3>{{ f_chatter_title }}</h3><p>{{ f_chatter_body }}</p></article>
+        <article><h3>{{ f_themes_title }}</h3><p>{{ f_themes_body }}</p></article>
+      </div>
+      <div class="shots">
+        <figure class="shot"><img src="assets/screenshot-light-iso.png" width="2000" height="880" alt="{{ shot_iso_alt }}" loading="lazy"></figure>
+        <figure class="shot"><img src="assets/screenshot-high-contrast-60.png" width="2000" height="880" alt="{{ shot_hc_alt }}" loading="lazy"></figure>
+      </div>
+    </section>
+
+    <section id="downloads">
+      <h2>{{ downloads_title }}</h2>
+      <table class="downloads">
+        <thead><tr><th>{{ col_file }}</th><th>{{ col_for }}</th><th>{{ col_size }}</th></tr></thead>
+        <tbody>
+          <tr><td><a href="{{ url_win_msi }}">{{ name_win_msi }}</a></td><td>{{ for_msi }}</td><td>{{ size_win_msi }}</td></tr>
+          <tr><td><a href="{{ url_win_zip }}">{{ name_win_zip }}</a></td><td>{{ for_zip }}</td><td>{{ size_win_zip }}</td></tr>
+          <tr><td><a href="{{ url_mac_dmg }}">{{ name_mac_dmg }}</a></td><td>{{ for_dmg }}</td><td>{{ size_mac_dmg }}</td></tr>
+          <tr><td><a href="{{ url_linux_appimage }}">{{ name_linux_appimage }}</a></td><td>{{ for_appimage }}</td><td>{{ size_linux_appimage }}</td></tr>
+          <tr><td><a href="{{ url_linux_deb }}">{{ name_linux_deb }}</a></td><td>{{ for_deb }}</td><td>{{ size_linux_deb }}</td></tr>
+          <tr><td><a href="{{ url_linux_tar }}">{{ name_linux_tar }}</a></td><td>{{ for_tar }}</td><td>{{ size_linux_tar }}</td></tr>
+          <tr><td><a href="{{ url_sha256 }}">{{ name_sha256 }}</a></td><td>{{ for_sha }}</td><td>{{ size_sha256 }}</td></tr>
+        </tbody>
+      </table>
+      <p class="note">{{ unsigned_note }}</p>
+    </section>
+
+    <section id="news">
+      <h2>{{ news_title }}</h2>
+      {{{ news_html }}}
+      <p><a href="{{ repo_url }}/blob/main/CHANGELOG.md">{{ all_changes }}</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <p>{{ footer_license }} <a href="{{ repo_url }}">{{ footer_source }}</a></p>
+    <p class="note">{{ footer_origin }}</p>
+  </footer>
+</body>
+</html>
