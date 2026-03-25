@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Windows .msi (WiX Toolset v5), built by packaging/windows/msi.ps1 from the folder that
+  package.ps1 prepared. No wizard: double-click installs to Program Files with a Start menu entry.
+  UpgradeCode never changes: by it, a new version replaces the old one.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="KeyProbe" Manufacturer="nazdravan" Version="$(Version)"
+           UpgradeCode="651E7FC0-0C64-442B-98CF-9D0F985E184C" Scope="perMachine" Compressed="yes">
+    <SummaryInformation Description="KeyProbe - keyboard tester" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of KeyProbe is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="$(Icon)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/nazdravan/keyprobe" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/nazdravan/keyprobe/issues" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="KeyProbe">
+        <Component Id="MainExecutable">
+          <File Id="MainExe" Source="$(Stage)\KeyProbe.exe" KeyPath="yes" />
+        </Component>
+        <Files Include="$(Stage)\*.txt" />
+        <Directory Id="LicensesFolder" Name="licenses">
+          <Files Include="$(Stage)\licenses\*.txt" />
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut">
+        <Shortcut Id="AppShortcut" Name="KeyProbe" Description="Keyboard tester"
+                  Target="[INSTALLFOLDER]KeyProbe.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" />
+        <RegistryValue Root="HKLM" Key="Software\nazdravan\KeyProbe" Name="StartMenuShortcut"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+  </Package>
+</Wix>
