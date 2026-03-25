@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=KeyProbe
+GenericName=Keyboard tester
+Comment=Press every key and see the codes your system sends
+Exec=keyprobe
+Icon=keyprobe
+Terminal=false
+Categories=Utility;System;
+Keywords=keyboard;test;keys;scancode;
