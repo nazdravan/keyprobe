@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>KeyProbe</string>
+	<key>CFBundleDisplayName</key>
+	<string>KeyProbe</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.nazdravan.keyprobe</string>
+	<key>CFBundleExecutable</key>
+	<string>keyprobe</string>
+	<key>CFBundleIconFile</key>
+	<string>keyprobe</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>@VERSION@</string>
+	<key>CFBundleVersion</key>
+	<string>@VERSION@</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>@MIN_MACOS@</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>MIT OR Apache-2.0</string>
+</dict>
+</plist>
