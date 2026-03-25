@@ -16,7 +16,7 @@
 
 [Quick start](#quick-start) · [Features](#features) · [Key codes](#key-codes) ·
 [Chatter and stuck keys](#chatter-and-stuck-keys) · [Layouts and themes](#layouts-and-themes) ·
-[Issues](../../issues)
+[Changelog](CHANGELOG.md) · [Releases](../../releases) · [Issues](../../issues)
 
 </div>
 
@@ -27,6 +27,32 @@ of its code.
 ![KeyProbe in the dark theme on the ANSI 104 layout, mid-test: tested keys in green, Shift held in amber, a chatter warning on F](docs/assets/screenshot-main.png)
 
 ## Quick start
+
+Each release on the [Releases](../../releases) page has these files:
+
+```
+keyprobe-<version>-linux-x86_64.AppImage
+keyprobe-<version>-linux-x86_64.deb
+keyprobe-<version>-linux-x86_64.tar.gz
+keyprobe-<version>-windows-x64.msi
+keyprobe-<version>-windows-x64-portable.zip
+keyprobe-<version>-macos-universal.dmg
+SHA256SUMS.txt
+```
+
+**Note: the release workflow has not run yet, so there is no release to download.** Until then,
+build from source (below).
+
+- **Windows 10/11:** run the `.msi`, or unzip the portable `.zip` and start `KeyProbe.exe`. The
+  files aren't signed with a paid certificate, so SmartScreen may say "Windows protected your PC":
+  choose *More info → Run anyway*.
+- **Linux:** `chmod +x keyprobe-*.AppImage` and run it; or `sudo apt install ./keyprobe-*.deb` on
+  Debian/Ubuntu; or unpack the `.tar.gz`. Built on Ubuntu 22.04, so glibc 2.35 or newer.
+- **macOS 10.13+ (Apple Silicon and Intel):** open the `.dmg` and drag KeyProbe to Applications. The
+  app is ad-hoc signed, not notarized: Gatekeeper blocks the first start. Right-click → *Open*, or
+  run `xattr -dr com.apple.quarantine /Applications/KeyProbe.app`.
+
+Check a download with `shasum -a 256 -c SHA256SUMS.txt --ignore-missing`.
 
 ### From source
 
@@ -143,6 +169,10 @@ for `x86_64-unknown-linux-gnu`.
 
 ## macOS
 
+The `.dmg` holds a universal `KeyProbe.app` (Apple Silicon and Intel, macOS 10.13+), ad-hoc signed
+by `packaging/macos/package.sh`. It is not notarized, which needs a paid Apple Developer account;
+see Quick start for the first start.
+
 Built and run on macOS, where the window, the control channel and the app's screenshots are
 checked.
 
@@ -176,6 +206,7 @@ layer touches egui, eframe or winit (`cargo xtask layers` enforces it):
 | `assets/banner.py` | `python3 assets/banner.py`: the README banner |
 | `assets/screenshots.py` | `python3 assets/screenshots.py`: README screenshots, taken by the app |
 | `assets/fonts` | Ubuntu Light and Hack, egui's default fonts, with their licences |
+| `packaging/` | release scripts: AppImage, `.deb`, `.tar.gz`, `.msi` (WiX), portable `.zip`, `.dmg` |
 
 The image generators need Python 3.11+ and Pillow.
 
@@ -212,6 +243,13 @@ app itself.
 printf '%s\n' '{"id":1,"cmd":"key.down","params":{"code":"KeyA"}}' \
   '{"id":2,"cmd":"ui.screenshot","params":{"path":"/tmp/keyprobe.png"}}' | nc 127.0.0.1 7878
 ```
+
+## Release
+
+Releases are made by `.github/workflows/release.yml`: a push to `main` with a version in
+`Cargo.toml` that isn't published yet builds every package above and publishes the release, with
+the notes from [CHANGELOG.md](CHANGELOG.md). `packaging/version.sh set X.Y.Z` changes the version.
+Details: [docs/releasing.md](docs/releasing.md).
 
 ## Tests
 
