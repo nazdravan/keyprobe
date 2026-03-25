@@ -5,6 +5,8 @@
 
 Outputs (generated, never edited by hand):
   docs/assets/banner.png   2430x420, transparent, reads on GitHub light and dark
+  docs/assets/og.png       1200x630 social preview for the landing page: the banner and the
+                           README pitch on the dark background
 """
 from PIL import Image, ImageDraw, ImageFont
 
@@ -46,10 +48,25 @@ def draw(t, width=W, height=H):
     return img
 
 
+PITCH = ["Lights up every key you press", "and shows the codes your system sent."]
+
+
+def social(t):
+    img = Image.new("RGBA", (1200, 630), theme.rgba(t["bg_dark"]))
+    img.alpha_composite(draw(t, 1200, 300), (0, 70))
+    d = ImageDraw.Draw(img)
+    font = ImageFont.truetype(theme.ASSETS / "fonts" / "Ubuntu-Light.ttf", 46)
+    for i, line in enumerate(PITCH):
+        d.text((600, 430 + i * 62), line, font=font, fill=theme.rgba(t["fg_dark"]), anchor="mm")
+    return img.convert("RGB")
+
+
 def main():
+    t = theme.load()
     out = theme.ROOT / "docs" / "assets"
     out.mkdir(parents=True, exist_ok=True)
-    draw(theme.load()).save(out / "banner.png", optimize=True)
+    draw(t).save(out / "banner.png", optimize=True)
+    social(t).save(out / "og.png", optimize=True)
 
 
 if __name__ == "__main__":
