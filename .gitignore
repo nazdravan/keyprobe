@@ -5,3 +5,5 @@
 # never committed; the binary is never run (clean-room).
 /reference/
 __pycache__/
+/.cache/
+/_site/

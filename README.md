@@ -14,7 +14,7 @@
 [![macOS](https://img.shields.io/badge/macOS-58be6e?style=flat-square)](#macos)
 [![Web](https://img.shields.io/badge/Web-58be6e?style=flat-square)](#web)
 
-[Quick start](#quick-start) · [Features](#features) · [Key codes](#key-codes) ·
+**[Landing page](https://nazdravan.github.io/keyprobe/)** · [Quick start](#quick-start) · [Features](#features) · [Key codes](#key-codes) ·
 [Chatter and stuck keys](#chatter-and-stuck-keys) · [Layouts and themes](#layouts-and-themes) ·
 [Changelog](CHANGELOG.md) · [Releases](../../releases) · [Issues](../../issues)
 
@@ -40,8 +40,8 @@ keyprobe-<version>-macos-universal.dmg
 SHA256SUMS.txt
 ```
 
-**Note: the release workflow has not run yet, so there is no release to download.** Until then,
-build from source (below).
+**Note: the release workflow has not run yet, so there is no release to download, and the landing
+page goes live with the first release.** Until then, build from source (below).
 
 - **Windows 10/11:** run the `.msi`, or unzip the portable `.zip` and start `KeyProbe.exe`. The
   files aren't signed with a paid certificate, so SmartScreen may say "Windows protected your PC":
@@ -206,6 +206,7 @@ layer touches egui, eframe or winit (`cargo xtask layers` enforces it):
 | `assets/banner.py` | `python3 assets/banner.py`: the README banner |
 | `assets/screenshots.py` | `python3 assets/screenshots.py`: README screenshots, taken by the app |
 | `assets/fonts` | Ubuntu Light and Hack, egui's default fonts, with their licences |
+| `site/` | the landing page: `python3 site/build.py --release release.json --out _site --app dist` (colours and fonts from `theme.toml`) |
 | `packaging/` | release scripts: AppImage, `.deb`, `.tar.gz`, `.msi` (WiX), portable `.zip`, `.dmg` |
 
 The image generators need Python 3.11+ and Pillow.
@@ -260,7 +261,10 @@ cargo xtask ci   # fmt, clippy -D warnings, tests, layer check, wasm clippy, ass
 `.github/workflows/ci.yml` runs the same gate on Linux, Windows and macOS for every push to `main`
 and every pull request.
 
-The tests cover the key table and layouts (property tests on lookups and geometry), the engine
+The landing page has its own tests: `python3 -m unittest discover -s site/tests` and
+`node --test site/tests/*.test.mjs`.
+
+The Rust tests cover the key table and layouts (property tests on lookups and geometry), the engine
 (undo/redo, panic rollback, property tests on arbitrary command params), the UI panels (headless
 egui), key mapping on desktop and web, the control channel and the theme staying in sync with
 `assets/theme.toml`.
