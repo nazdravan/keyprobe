@@ -1,0 +1,42 @@
+{
+ "assets": [
+  {
+   "name": "keyprobe-0.1.0-linux-x86_64.AppImage",
+   "size": 9437184,
+   "url": "https://github.com/nazdravan/keyprobe/releases/download/v0.1.0/keyprobe-0.1.0-linux-x86_64.AppImage"
+  },
+  {
+   "name": "keyprobe-0.1.0-linux-x86_64.deb",
+   "size": 5242880,
+   "url": "https://github.com/nazdravan/keyprobe/releases/download/v0.1.0/keyprobe-0.1.0-linux-x86_64.deb"
+  },
+  {
+   "name": "keyprobe-0.1.0-linux-x86_64.tar.gz",
+   "size": 6291456,
+   "url": "https://github.com/nazdravan/keyprobe/releases/download/v0.1.0/keyprobe-0.1.0-linux-x86_64.tar.gz"
+  },
+  {
+   "name": "keyprobe-0.1.0-macos-universal.dmg",
+   "size": 11534336,
+   "url": "https://github.com/nazdravan/keyprobe/releases/download/v0.1.0/keyprobe-0.1.0-macos-universal.dmg"
+  },
+  {
+   "name": "keyprobe-0.1.0-windows-x64-portable.zip",
+   "size": 5767168,
+   "url": "https://github.com/nazdravan/keyprobe/releases/download/v0.1.0/keyprobe-0.1.0-windows-x64-portable.zip"
+  },
+  {
+   "name": "keyprobe-0.1.0-windows-x64.msi",
+   "size": 4718592,
+   "url": "https://github.com/nazdravan/keyprobe/releases/download/v0.1.0/keyprobe-0.1.0-windows-x64.msi"
+  },
+  {
+   "name": "SHA256SUMS.txt",
+   "size": 712,
+   "url": "https://github.com/nazdravan/keyprobe/releases/download/v0.1.0/SHA256SUMS.txt"
+  }
+ ],
+ "publishedAt": "2026-03-12T15:00:00Z",
+ "tagName": "v0.1.0",
+ "url": "https://github.com/nazdravan/keyprobe/releases/tag/v0.1.0"
+}
