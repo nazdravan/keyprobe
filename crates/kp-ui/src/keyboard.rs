@@ -7,8 +7,8 @@ use crate::theme::brand;
 
 /// Gap between neighbouring keys, in key units.
 const GAP: f32 = 0.08;
-/// Largest key size in points; beyond it the board stops growing.
-const MAX_UNIT: f32 = 64.0;
+/// Largest key size in points; beyond it the board stops growing and is centred.
+const MAX_UNIT: f32 = 128.0;
 /// Below this the legends are unreadable; the board scrolls instead of shrinking further.
 const MIN_UNIT: f32 = 18.0;
 
@@ -109,9 +109,13 @@ pub fn show(
         return;
     };
     let size = Vec2::new(bounds.right(), bounds.bottom());
-    let unit = unit_for(size, Vec2::new(ui.available_width(), max_height));
-    let (response, painter) = ui.allocate_painter(size * unit, Sense::hover());
-    let origin = response.rect.min;
+    let avail_width = ui.available_width();
+    let unit = unit_for(size, Vec2::new(avail_width, max_height));
+    let board = size * unit;
+    let (response, painter) =
+        ui.allocate_painter(Vec2::new(board.x.max(avail_width), board.y), Sense::hover());
+    let origin =
+        response.rect.min + Vec2::new(((response.rect.width() - board.x) / 2.0).max(0.0), 0.0);
     let last = doc.test.last.as_ref().map(|e| &e.code);
 
     for key in &layout.keys {
