@@ -6,6 +6,7 @@
 
 **KeyProbe lights up every key you press on an on-screen keyboard and shows the codes your system sent for it.**
 
+[![CI](https://img.shields.io/github/actions/workflow/status/nazdravan/keyprobe/ci.yml?branch=main&label=CI&style=flat-square)](../../actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-58be6e?style=flat-square)](#license)
 [![Rust](https://img.shields.io/badge/Rust-edition%202024-58be6e?style=flat-square)](https://doc.rust-lang.org/edition-guide/rust-2024/)
 [![UI](https://img.shields.io/badge/UI-egui%20%2F%20eframe-58be6e?style=flat-square)](https://github.com/emilk/egui)
@@ -40,8 +41,8 @@ keyprobe-<version>-macos-universal.dmg
 SHA256SUMS.txt
 ```
 
-**Note: the release workflow has not run yet, so there is no release to download, and the landing
-page goes live with the first release.** Until then, build from source (below).
+The latest one is [v0.1.0](../../releases/latest). No install needed for a quick look: the
+[landing page](https://nazdravan.github.io/keyprobe/) runs the web build in the browser.
 
 - **Windows 10/11:** run the `.msi`, or unzip the portable `.zip` and start `KeyProbe.exe`. The
   files aren't signed with a paid certificate, so SmartScreen may say "Windows protected your PC":
@@ -156,16 +157,16 @@ public documentation.
 Built with the MSVC toolchain; `assets/keyprobe.ico` is embedded as the `.exe` icon by
 `apps/keyprobe-desktop/build.rs`.
 
-**Note: not yet run on a real Windows machine.** The desktop app passes `cargo clippy -D warnings`
-for `x86_64-pc-windows-msvc`.
+**Note: the app hasn't been started on a real Windows machine yet.** `cargo xtask ci` passes on
+GitHub's Windows runner, and the release workflow builds the `.msi` and `.zip` there.
 
 ## Linux
 
 Needs the usual X11/Wayland libraries at build time (`libxkbcommon-dev`, `libwayland-dev`,
 `libxcb-*-dev`).
 
-**Note: not yet run on a real Linux machine.** The desktop app passes `cargo clippy -D warnings`
-for `x86_64-unknown-linux-gnu`.
+**Note: the app hasn't been started on a real Linux machine yet.** `cargo xtask ci` passes on
+GitHub's Ubuntu runner, and the release workflow builds the AppImage, `.deb` and `.tar.gz` there.
 
 ## macOS
 
