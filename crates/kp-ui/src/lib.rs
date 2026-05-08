@@ -6,7 +6,7 @@ mod keyboard;
 mod limits;
 mod theme;
 
-use egui::{Button, Color32, RichText};
+use egui::{Button, Color32, RichText, TextStyle};
 use kp_doc::KeyEvent;
 use kp_engine::App;
 use serde_json::{Value, json};
@@ -43,20 +43,27 @@ impl KeyProbeUi {
         self.toolbar(ui, app);
         ui.separator();
         let doc = app.session().doc();
-        match kp_keys::layout(&doc.view.layout) {
+        let unit = match kp_keys::layout(&doc.view.layout) {
             Some(layout) => {
                 let max_height = (ui.available_height() - READOUT_HEIGHT).max(0.0);
                 let palette = theme::palette(&doc.view.theme, ui.visuals());
-                keyboard::show(ui, &layout, doc, palette, self.now_ms, max_height);
+                keyboard::show(ui, &layout, doc, palette, self.now_ms, max_height)
             }
             None => {
                 ui.label(format!("Unknown layout {:?}", doc.view.layout));
+                0.0
             }
-        }
+        };
         ui.separator();
         ui.horizontal_top(|ui| {
+            let size = keyboard::panel_text_size(unit);
+            for style in [TextStyle::Body, TextStyle::Monospace] {
+                if let Some(font) = ui.style_mut().text_styles.get_mut(&style) {
+                    font.size = size;
+                }
+            }
             ui.vertical(|ui| {
-                ui.set_width((ui.available_width() * 0.62).max(200.0));
+                ui.set_width((ui.available_width() * 0.5).max(200.0));
                 readout(ui, app);
             });
             ui.separator();
@@ -235,7 +242,7 @@ pub fn chatter_summary(test: &kp_doc::TestState) -> Option<String> {
     Some(format!("Chatter: {}", keys.join(", ")))
 }
 
-/// The event log, newest first, scrolling within the readout height.
+/// The event log, newest first, filling the height left under the keyboard.
 fn event_log(ui: &mut egui::Ui, app: &App) {
     let lines = log_lines(&app.session().doc().test.log);
     if lines.is_empty() {
@@ -243,11 +250,11 @@ fn event_log(ui: &mut egui::Ui, app: &App) {
         return;
     }
     egui::ScrollArea::vertical()
-        .max_height(READOUT_HEIGHT - 10.0)
+        .max_height(ui.available_height())
         .auto_shrink([false, true])
         .show(ui, |ui| {
             for line in lines {
-                ui.label(RichText::new(line).monospace().small());
+                ui.label(RichText::new(line).monospace());
             }
         });
 }

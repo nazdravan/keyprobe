@@ -95,7 +95,8 @@ impl Palette {
     }
 }
 
-/// Draws `layout` with the state from `doc`, filling the available width.
+/// Draws `layout` with the state from `doc`, filling the available width. Returns the key unit in
+/// points, so the panels below can scale their text with the board.
 pub fn show(
     ui: &mut egui::Ui,
     layout: &Layout,
@@ -103,10 +104,10 @@ pub fn show(
     palette: Palette,
     now_ms: Option<u64>,
     max_height: f32,
-) {
+) -> f32 {
     let Some(bounds) = layout.bounds() else {
         ui.label("Empty layout.");
-        return;
+        return MIN_UNIT;
     };
     let size = Vec2::new(bounds.right(), bounds.bottom());
     let avail_width = ui.available_width();
@@ -162,6 +163,13 @@ pub fn show(
             response.on_hover_ui_at_pointer(|ui| tooltip(ui, key, &doc.test, now_ms));
         }
     }
+    unit
+}
+
+/// Text size for the readout and the event log under a board of key `unit`: the default body size
+/// on a normal window, larger when the board grows.
+pub fn panel_text_size(unit: f32) -> f32 {
+    (unit * 0.25).clamp(13.0, 20.0)
 }
 
 fn key_rect(origin: Pos2, unit: f32, key: &KeyCap) -> Rect {
@@ -323,6 +331,13 @@ mod tests {
         assert_eq!(legend_size("Esc", u), legend_size("Backspace", u));
         assert!(legend_size("A", u) > legend_size("Alt", u));
         assert_eq!(legend_size("←", u), legend_size("Q", u));
+    }
+
+    #[test]
+    fn panel_text_grows_with_the_board() {
+        assert_eq!(panel_text_size(MIN_UNIT), 13.0);
+        assert_eq!(panel_text_size(64.0), 16.0);
+        assert_eq!(panel_text_size(MAX_UNIT), 20.0);
     }
 
     #[test]
