@@ -142,6 +142,12 @@ fn web() -> Result {
         format!("{dist}/index.html"),
     )
     .map_err(|e| format!("copy index.html: {e}"))?;
+    // The favicon is the generated app icon (assets/icon.py), not a copy kept in apps/.
+    std::fs::copy(
+        format!("{root}/assets/icon.png"),
+        format!("{dist}/favicon.png"),
+    )
+    .map_err(|e| format!("copy favicon.png: {e}"))?;
     eprintln!("web: built {dist}/ (serve it: python3 -m http.server -d {DIST})");
     Ok(())
 }
