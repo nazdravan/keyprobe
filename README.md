@@ -21,9 +21,7 @@
 
 </div>
 
-KeyProbe is an original program, written from scratch in Rust from public specifications. It is
-inspired by the features of Keyboard Test Utility; it is not affiliated with it and contains none
-of its code.
+KeyProbe is an original program, written from scratch in Rust from public specifications.
 
 ![KeyProbe in the dark theme on the ANSI 104 layout, mid-test: tested keys in green, Shift held in amber, a chatter warning on F](docs/assets/screenshot-main.png)
 
@@ -145,9 +143,8 @@ Some keys never reach an application:
 
 The same list, for the platform you're on, is under **Platform limits** in the toolbar.
 
-Two choices are deliberate. The compact 91- and 72-key layouts of the original are not included,
-because they are its own arrangements rather than standards; KeyProbe has the standard ones
-instead. The Korean Lang1/Lang2 keys are left out until their Windows codes can be confirmed from
+Two choices are deliberate. Only standard layouts are included, not vendor-specific compact
+arrangements. The Korean Lang1/Lang2 keys are left out until their Windows codes can be confirmed from
 public documentation.
 
 ---

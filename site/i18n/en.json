@@ -38,7 +38,6 @@
   "all_changes": "All changes",
   "footer_license": "Free and open source, MIT or Apache-2.0.",
   "footer_source": "Source code on GitHub",
-  "footer_origin": "Inspired by the features of Keyboard Test Utility; not affiliated with it.",
   "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
   "date_format": "{month} {d}, {y}"
 }

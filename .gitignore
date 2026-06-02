@@ -1,8 +1,7 @@
 /target
 /dist
 .DS_Store
-# Material from the original GPL-3 app (README, screenshots, binary): local only,
-# never committed; the binary is never run (clean-room).
+# Local research material, never committed.
 /reference/
 __pycache__/
 /.cache/

@@ -360,7 +360,7 @@ pub fn by_usage(page: u16, usage: u16) -> Option<&'static KeyInfo> {
     KEYS.iter().find(|k| k.hid_page == page && k.hid == usage)
 }
 
-/// `0x20 (32)`, the readout format of the reference app's status bar.
+/// `0x20 (32)`: the value in hex with the decimal in brackets, as the readout shows it.
 pub fn hex_dec(value: u8) -> String {
     format!("0x{value:02X} ({value})")
 }
@@ -371,9 +371,9 @@ mod tests {
     use proptest::prelude::*;
     use std::collections::BTreeSet;
 
-    /// Values visible in the reference app's public screenshots.
+    /// Space against Microsoft's virtual-key table.
     #[test]
-    fn matches_reference_screenshots() {
+    fn space_codes() {
         let space = by_code("Space").unwrap();
         assert_eq!(space.hid_page, PAGE_KEYBOARD);
         assert_eq!((space.vk, space.vk_name), (0x20, "VK_SPACE"));

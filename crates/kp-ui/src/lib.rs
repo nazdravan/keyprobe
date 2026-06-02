@@ -318,7 +318,7 @@ mod tests {
     use kp_doc::{KeyCode, NativeCode};
 
     #[test]
-    fn readout_for_print_screen_matches_reference_format() {
+    fn readout_for_print_screen() {
         let e = KeyEvent {
             code: KeyCode::new("PrintScreen").unwrap(),
             down: true,
