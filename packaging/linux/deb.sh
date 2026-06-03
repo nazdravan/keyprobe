@@ -23,7 +23,19 @@ install -m 644 README.md "$pkg/usr/share/doc/keyprobe/README.md"
     echo "Source: https://github.com/nazdravan/keyprobe"
     echo
     echo "Files: *"
+    echo "Copyright: $(sed -n 's/^Copyright (c) //p' LICENSE-MIT)"
     echo "License: MIT or Apache-2.0"
+    echo
+    echo "Files: assets/fonts/Ubuntu-Light.ttf"
+    echo "Copyright: 2010-2011 Canonical Ltd."
+    echo "License: Ubuntu-Font-Licence-1.0"
+    echo "Comment: Built into usr/bin/keyprobe."
+    echo
+    echo "Files: assets/fonts/Hack-Regular.ttf"
+    echo "Copyright: 2018 Source Foundry Authors"
+    echo " 2003 Bitstream Inc."
+    echo "License: Hack"
+    echo "Comment: Built into usr/bin/keyprobe."
     echo
     echo "License: MIT"
     sed 's/^/ /; s/^ $/ ./' LICENSE-MIT
@@ -31,9 +43,11 @@ install -m 644 README.md "$pkg/usr/share/doc/keyprobe/README.md"
     echo "License: Apache-2.0"
     echo " On Debian systems, the full text is in /usr/share/common-licenses/Apache-2.0."
     echo
-    echo "Files: fonts built into the binary"
-    echo "License: Ubuntu-Font-Licence-1.0 and Hack"
-    sed 's/^/ /; s/^ $/ ./' assets/fonts/UFL.txt assets/fonts/Hack-Regular.txt
+    echo "License: Ubuntu-Font-Licence-1.0"
+    sed 's/^/ /; s/^ $/ ./' assets/fonts/UFL.txt
+    echo
+    echo "License: Hack"
+    sed 's/^/ /; s/^ $/ ./' assets/fonts/Hack-Regular.txt
 } >"$pkg/usr/share/doc/keyprobe/copyright"
 
 # Debian versions use ~ for pre-releases: 0.2.0-rc.1 -> 0.2.0~rc.1.
