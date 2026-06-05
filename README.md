@@ -280,5 +280,8 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 KeyProbe by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without
 any additional terms or conditions.
 
-The bundled fonts keep their own licences: Ubuntu Font Licence (`assets/fonts/UFL.txt`) and the
-Hack licence (`assets/fonts/Hack-Regular.txt`).
+Copyright (c) 2025 Nicolae Postica.
+
+The bundled fonts (egui's Ubuntu Light, Hack, Noto Emoji and emoji-icon-font) and the Rust crates
+keep their own licences, listed in [NOTICE](NOTICE). Every package carries `NOTICE`, the font
+licences and `THIRD-PARTY.txt`, with the full licence text of each crate.

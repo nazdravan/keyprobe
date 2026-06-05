@@ -1,0 +1,30 @@
+KeyProbe
+Copyright (c) 2025 Nicolae Postica
+
+Licensed under either of the Apache License, Version 2.0 (LICENSE-APACHE) or the MIT license
+(LICENSE-MIT), at your option.
+
+Source code: https://github.com/nazdravan/keyprobe
+
+Third-party material
+--------------------
+
+KeyProbe bundles the parts below, each under its own licence.
+
+Fonts built into the program, through egui's epaint_default_fonts crate:
+
+- Ubuntu Light (assets/fonts/Ubuntu-Light.ttf): Copyright 2011 Canonical Ltd.
+  Ubuntu Font Licence 1.0, see licenses/UFL.txt.
+- Hack (assets/fonts/Hack-Regular.ttf): Copyright 2018 Source Foundry Authors, MIT;
+  Copyright 2003 Bitstream, Inc., Bitstream Vera License. See licenses/Hack-Regular.txt.
+- Noto Emoji: Copyright 2013 Google Inc., SIL Open Font License 1.1.
+- emoji-icon-font: Copyright 2014 John Slegers, MIT.
+
+The full text of every font licence is also in THIRD-PARTY.txt.
+
+Rust crates: the crates KeyProbe is built from, with the full text of each licence and the
+crates under it, are listed in THIRD-PARTY.txt (generated with cargo-about from about.toml at
+release time).
+
+The landing page (site/) serves Ubuntu Light and Hack, under the licences above
+(assets/fonts/UFL.txt, assets/fonts/Hack-Regular.txt).

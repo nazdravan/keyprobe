@@ -26,7 +26,7 @@ lipo -create -output "$app/Contents/MacOS/keyprobe" \
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@MIN_MACOS@/$MACOSX_DEPLOYMENT_TARGET/g" \
     packaging/macos/Info.plist >"$app/Contents/Info.plist"
 cp assets/keyprobe.icns "$app/Contents/Resources/keyprobe.icns"
-cp LICENSE-MIT LICENSE-APACHE assets/fonts/UFL.txt assets/fonts/Hack-Regular.txt "$app/Contents/Resources/"
+copy_docs "$app/Contents/Resources"
 
 # Ad-hoc signature: without one the app doesn't start on Apple Silicon at all.
 # It does not replace signing with an Apple Developer certificate (see README, macOS).

@@ -25,8 +25,8 @@ mkdir -p "$appdir/usr/bin" "$appdir/usr/share/applications" \
 install -m 755 target/release/keyprobe "$appdir/usr/bin/keyprobe"
 cp packaging/linux/keyprobe.desktop "$appdir/usr/share/applications/"
 cp assets/icon.png "$appdir/usr/share/icons/hicolor/256x256/apps/keyprobe.png"
-cp README.md LICENSE-MIT LICENSE-APACHE assets/fonts/UFL.txt assets/fonts/Hack-Regular.txt \
-    "$appdir/usr/share/doc/keyprobe/"
+cp README.md "$appdir/usr/share/doc/keyprobe/"
+copy_docs "$appdir/usr/share/doc/keyprobe"
 # appimagetool wants the .desktop file and the icon in the AppDir root too.
 ln -s usr/share/applications/keyprobe.desktop "$appdir/keyprobe.desktop"
 ln -s usr/share/icons/hicolor/256x256/apps/keyprobe.png "$appdir/keyprobe.png"

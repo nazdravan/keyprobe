@@ -93,6 +93,14 @@ class PageTest(unittest.TestCase):
         for ref in re.findall(r'url\("([^"]+)"\)', css):
             self.assertTrue((self.out / "assets" / ref).is_file(), ref)
 
+    def test_every_served_font_has_its_licence(self):
+        fonts = sorted(p.name for p in (self.out / "assets").glob("*.ttf"))
+        self.assertEqual(fonts, ["Hack-Regular.ttf", "Ubuntu-Light.ttf"])
+        notice = (ROOT / "NOTICE").read_text(encoding="utf-8")
+        for licence in ("UFL.txt", "Hack-Regular.txt"):
+            self.assertTrue((self.out / "assets" / licence).is_file(), licence)
+            self.assertIn(f"assets/fonts/{licence}", notice)
+
     def test_social_and_canonical(self):
         self.assertIn('rel="canonical" href="https://nazdravan.github.io/keyprobe/"', self.page)
         self.assertIn('property="og:image" content="https://nazdravan.github.io/keyprobe/assets/og.png"', self.page)

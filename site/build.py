@@ -50,6 +50,12 @@ IMAGES = {
     "Hack-Regular.ttf": ROOT / "assets/fonts/Hack-Regular.ttf",
 }
 
+# The licences of the fonts above travel with them (see NOTICE).
+FONT_LICENCES = {
+    "UFL.txt": ROOT / "assets/fonts/UFL.txt",
+    "Hack-Regular.txt": ROOT / "assets/fonts/Hack-Regular.txt",
+}
+
 # CSS custom property -> theme.toml key, for light and dark.
 THEME_VARS = {
     "--accent": ("accent", "accent"),
@@ -246,7 +252,7 @@ def build(release, out, app=None):
     for f in (SITE / "assets").iterdir():
         shutil.copy2(f, out / "assets" / f.name)
     (out / "assets/theme.css").write_text(theme_css(theme), encoding="utf-8")
-    for name, src in IMAGES.items():
+    for name, src in {**IMAGES, **FONT_LICENCES}.items():
         shutil.copy2(src, out / "assets" / name)
     if app is not None:
         if not (app / "index.html").is_file():

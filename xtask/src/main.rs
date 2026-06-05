@@ -1,6 +1,6 @@
 //! Repo automation. Run as `cargo xtask <task>`.
 //!
-//! - `ci`     — the gate before every commit: fmt, clippy, test, layers, wasm, assets.
+//! - `ci`     — the gate before every commit: fmt, clippy, test, layers, wasm, assets, licences.
 //! - `layers` — every crate declares `[package.metadata.layer] level`; a crate may only depend on
 //!   lower layers, and nothing below L6 may (even transitively) pull in a UI/windowing crate.
 //! - `wasm`   — `cargo clippy -D warnings` for wasm32 of every crate that must run on the web
@@ -8,6 +8,8 @@
 //!   that sets `wasm = true`), so wasm-only code is linted too.
 //! - `assets` — `assets/theme.toml` exists and every image in `assets/` and `docs/assets/` is
 //!   named by a generator script in `assets/*.py` (images are code, never hand-made).
+//! - `licences` — every file in `assets/fonts/` (each font and its licence) is named in `NOTICE`,
+//!   so a new font never ships without its licence.
 //! - `web`    — release build of `keyprobe-web` + `wasm-bindgen` → `dist/` (open via a static
 //!   server, e.g. `python3 -m http.server -d dist`).
 
@@ -40,9 +42,10 @@ fn main() -> ExitCode {
         "layers" => layers(),
         "wasm" => wasm(),
         "assets" => assets(),
+        "licences" => licences(),
         "web" => web(),
         _ => Err(format!(
-            "unknown task {task:?}; expected one of: ci, fmt, clippy, test, layers, wasm, assets, web"
+            "unknown task {task:?}; expected one of: ci, fmt, clippy, test, layers, wasm, assets, licences, web"
         )),
     };
     match result {
@@ -62,6 +65,7 @@ fn ci() -> Result {
         ("layers", layers),
         ("wasm", wasm),
         ("assets", assets),
+        ("licences", licences),
     ] {
         eprintln!("== xtask {name}");
         step().map_err(|e| format!("{name}: {e}"))?;
@@ -263,6 +267,43 @@ fn assets() -> Result {
     }
 }
 
+fn licences() -> Result {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or("xtask has no parent directory")?;
+    let notice =
+        std::fs::read_to_string(root.join("NOTICE")).map_err(|e| format!("NOTICE: {e}"))?;
+    let dir = root.join("assets").join("fonts");
+    let names: Vec<String> = std::fs::read_dir(&dir)
+        .map_err(|e| format!("{}: {e}", dir.display()))?
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .collect();
+    let missing = not_in_notice(&notice, &names);
+    if missing.is_empty() {
+        eprintln!(
+            "licences: {} files in assets/fonts, each named in NOTICE",
+            names.len()
+        );
+        Ok(())
+    } else {
+        Err(format!(
+            "assets/fonts files not named in NOTICE (add the font and its licence): {}",
+            missing.join(", ")
+        ))
+    }
+}
+
+/// The names that NOTICE does not mention, sorted.
+fn not_in_notice(notice: &str, names: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = names
+        .iter()
+        .filter(|n| !n.starts_with('.') && !notice.contains(n.as_str()))
+        .cloned()
+        .collect();
+    out.sort();
+    out
+}
+
 fn metadata() -> Result<Value> {
     let out = Command::new(cargo_bin())
         .args(["metadata", "--format-version", "1"])
@@ -364,5 +405,17 @@ fn cargo(args: &[&str]) -> Result {
         Ok(())
     } else {
         Err(format!("`cargo {}` exited with {status}", args.join(" ")))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::not_in_notice;
+
+    #[test]
+    fn a_font_missing_from_notice_is_reported() {
+        let names = ["Hack-Regular.ttf", "UFL.txt", "New.ttf", ".DS_Store"].map(String::from);
+        let notice = "Hack (assets/fonts/Hack-Regular.ttf), see licenses/UFL.txt";
+        assert_eq!(not_in_notice(notice, &names), ["New.ttf"]);
     }
 }

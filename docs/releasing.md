@@ -73,3 +73,19 @@ the README's Quick start).
 
 Every script in `packaging/` also runs locally on its own platform, e.g.
 `packaging/macos/package.sh` on a Mac; the files land in `dist/release/`.
+
+## Licences in the packages
+
+Every package carries `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`, `THIRD-PARTY.txt` and the font
+licences in `licenses/`. The packaging scripts copy them only through `copy_docs`
+(`packaging/env.sh`; in `package.ps1`, `Copy-Docs`).
+
+- `THIRD-PARTY.txt` is generated, not in git: `packaging/licences.sh` (needs
+  `cargo install cargo-about --locked --features cli --version <CARGO_ABOUT_VERSION from env.sh>`)
+  writes it to `dist/` with the licence of every crate and of egui's fonts. In CI the `licences`
+  job makes it on every run, and fails if a crate has a licence that is not in `about.toml`.
+- After an egui update the checksums in `[epaint_default_fonts.clarify]` (`about.toml`) stop
+  matching and `packaging/licences.sh` stops: check the crate's `fonts/*.txt` and update the sums
+  (`shasum -a 256`).
+- A new file in `assets/fonts/` must be named in `NOTICE`, with its licence: otherwise
+  `cargo xtask licences` (part of `cargo xtask ci`) fails.
