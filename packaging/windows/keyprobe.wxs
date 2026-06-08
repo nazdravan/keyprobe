@@ -22,6 +22,11 @@
         <Component Id="MainExecutable">
           <File Id="MainExe" Source="$(Stage)\KeyProbe.exe" KeyPath="yes" />
         </Component>
+        <!-- The in-app updater recognises the MSI copy by this value (and reinstalls the MSI). -->
+        <Component Id="InstallFolderRegistry">
+          <RegistryValue Root="HKLM" Key="Software\nazdravan\KeyProbe" Name="InstallFolder"
+                         Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        </Component>
         <Files Include="$(Stage)\*.txt" />
         <Directory Id="LicensesFolder" Name="licenses">
           <Files Include="$(Stage)\licenses\*.txt" />

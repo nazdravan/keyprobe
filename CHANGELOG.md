@@ -3,6 +3,15 @@
 All notable changes to KeyProbe. Each version has a section `## [X.Y.Z] — YYYY-MM-DD` with
 Added / Changed / Fixed; the section becomes the GitHub release notes (see `docs/releasing.md`).
 
+## [Unreleased]
+
+### Added
+
+- **About… → Check for updates…** finds a newer release and installs it (`.msi`, portable `.zip`,
+  `.deb`, AppImage, `.dmg`), then restarts KeyProbe; for `.tar.gz` it opens the release page.
+  Nothing is checked on its own, only when the button is pressed. `keyprobe --check-update`
+  prints what a check finds.
+
 ## [0.1.0] — 2026-03-25
 
 The first release.

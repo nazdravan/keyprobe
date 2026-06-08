@@ -23,7 +23,25 @@ const MAX_QUEUED_KEYS: usize = 1024;
 
 type KeyQueue = Arc<Mutex<VecDeque<Captured>>>;
 
+/// What the updater needs to find, download and install a new release from GitHub.
+const KEYPROBE: app_update::AppInfo = app_update::AppInfo {
+    name: "keyprobe",
+    display_name: "KeyProbe",
+    repo: "nazdravan/keyprobe",
+    version: env!("CARGO_PKG_VERSION"),
+    windows_exe: "KeyProbe.exe",
+    msi_registry_key: r"Software\nazdravan\KeyProbe",
+    deb_package: "keyprobe",
+    mac_bundle: "KeyProbe.app",
+};
+
 fn main() -> eframe::Result {
+    // `--check-update` prints what a check finds, without a window.
+    if let Some(code) = app_update::run_cli(&KEYPROBE) {
+        std::process::exit(code);
+    }
+    // Leftovers of a previous update.
+    app_update::cleanup(&KEYPROBE);
     let control_port = match control::port_from_args(std::env::args()) {
         Ok(port) => port,
         Err(e) => {
@@ -124,6 +142,7 @@ struct DesktopApp {
     ui: KeyProbeUi,
     queue: KeyQueue,
     control: Option<Control>,
+    updater: app_update::Updater,
 }
 
 impl DesktopApp {
@@ -133,6 +152,7 @@ impl DesktopApp {
             ui: KeyProbeUi::default(),
             queue,
             control,
+            updater: app_update::Updater::new(KEYPROBE),
         }
     }
 
@@ -171,6 +191,23 @@ impl eframe::App for DesktopApp {
             control.drain(&mut self.app, ui.ctx());
         }
         self.ui.set_clock(capture::now_ms());
+        self.ui.set_update_button(Some(!self.updater.is_busy()));
         egui::CentralPanel::default().show(ui, |ui| self.ui.show(ui, &mut self.app));
+        let ctx = ui.ctx().clone();
+        if self.ui.take_update_request() {
+            self.updater.check(&ctx);
+        }
+        if let Some(app_update::UpdaterEvent::RestartRequested) =
+            self.updater.show(&ctx, app_update::Lang::En)
+        {
+            match self.updater.restart() {
+                Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                Err(e) => {
+                    let texts = app_update::texts(app_update::Lang::En);
+                    self.ui
+                        .set_error(texts.error(&e).unwrap_or_else(|| e.to_string()));
+                }
+            }
+        }
     }
 }

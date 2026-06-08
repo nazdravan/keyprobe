@@ -29,6 +29,11 @@ pub struct KeyProbeUi {
     now_ms: Option<u64>,
     /// The About dialog's content while it is open (the result of `help.about`).
     about: Option<Value>,
+    /// `Some(enabled)`: the About dialog offers "Check for updates…" (desktop only; the web
+    /// build has nothing to update).
+    update_button: Option<bool>,
+    /// "Check for updates…" was clicked and the app has not picked it up yet.
+    update_requested: bool,
 }
 
 impl KeyProbeUi {
@@ -81,6 +86,21 @@ impl KeyProbeUi {
         self.now_ms = Some(now_ms);
     }
 
+    /// Offers "Check for updates…" in the About dialog (`Some(enabled)`), or hides it (`None`).
+    pub fn set_update_button(&mut self, button: Option<bool>) {
+        self.update_button = button;
+    }
+
+    /// Whether "Check for updates…" was clicked since the last call.
+    pub fn take_update_request(&mut self) -> bool {
+        std::mem::take(&mut self.update_requested)
+    }
+
+    /// Shows `message` where command errors go, until the next successful command.
+    pub fn set_error(&mut self, message: String) {
+        self.last_error = Some(message);
+    }
+
     /// Switches egui to the document's theme when it changed (undo can change it too).
     fn apply_theme(&mut self, ctx: &egui::Context, id: &str) {
         if self.applied_theme.as_deref() != Some(id) {
@@ -112,8 +132,17 @@ impl KeyProbeUi {
                 for s in about["sources"].as_array().into_iter().flatten() {
                     ui.label(format!("• {}", s.as_str().unwrap_or_default()));
                 }
+                if let Some(enabled) = self.update_button {
+                    ui.separator();
+                    if ui
+                        .add_enabled(enabled, Button::new("Check for updates…"))
+                        .clicked()
+                    {
+                        self.update_requested = true;
+                    }
+                }
             });
-        if !open {
+        if !open || self.update_requested {
             self.about = None;
         }
     }
@@ -360,6 +389,44 @@ mod tests {
                 "KeyA ↓"
             ]
         );
+    }
+
+    #[test]
+    fn update_button_only_when_offered() {
+        let mut app = App::default();
+        let about = app.run("help.about", &Value::Null).unwrap();
+        for offered in [false, true] {
+            let mut ui_state = KeyProbeUi {
+                about: Some(about.clone()),
+                ..Default::default()
+            };
+            if offered {
+                ui_state.set_update_button(Some(true));
+            }
+            let ctx = egui::Context::default();
+            let mut found = false;
+            // A new window is laid out invisibly on its first frame.
+            let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+                ui_state.show(ui, &mut app);
+            });
+            out.textures_delta.clear();
+            let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+                ui_state.show(ui, &mut app);
+            });
+            out.textures_delta.clear();
+            for shape in &out.shapes {
+                if let egui::epaint::Shape::Text(t) = &shape.shape {
+                    found |= t.galley.text().contains("Check for updates");
+                }
+            }
+            assert_eq!(found, offered);
+        }
+        let mut ui_state = KeyProbeUi {
+            update_requested: true,
+            ..Default::default()
+        };
+        assert!(ui_state.take_update_request());
+        assert!(!ui_state.take_update_request());
     }
 
     #[test]

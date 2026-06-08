@@ -74,6 +74,12 @@ the README's Quick start).
 Every script in `packaging/` also runs locally on its own platform, e.g.
 `packaging/macos/package.sh` on a Mac; the files land in `dist/release/`.
 
+The in-app updater (About… → Check for updates…, the `app-update` crate) finds its file by these
+exact names and checks it against `SHA256SUMS.txt` (`<sum>  <name>` lines) of the same release, so
+neither the names nor the `v<version>` tag may change. It recognises the MSI copy by the
+`InstallFolder` value the `.msi` writes under `HKLM\Software\nazdravan\KeyProbe`, and a portable
+folder by the `LICENSE-*` file next to `KeyProbe.exe`.
+
 ## Licences in the packages
 
 Every package carries `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`, `THIRD-PARTY.txt` and the font

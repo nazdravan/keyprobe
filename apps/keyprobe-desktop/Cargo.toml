@@ -21,6 +21,7 @@ png.workspace = true
 eframe = { workspace = true, features = ["default"] }
 winit.workspace = true
 serde_json.workspace = true
+app-update = { git = "https://github.com/nazdravan/app-update", rev = "2bd753dd0e53524a5aabc2b244b06569b9050386" }
 
 [lints]
 workspace = true
